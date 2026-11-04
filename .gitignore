@@ -1,0 +1,19 @@
+# Local builds and pairing secrets
+/dist/
+/.build/
+/config.json
+/state.json
+/app.log
+/.server.lock
+/.thumbnails/
+/Clips/
+/Projekte/
+*.prproj
+*.mp4
+*.mp4.part
+*.log
+*.app/
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/

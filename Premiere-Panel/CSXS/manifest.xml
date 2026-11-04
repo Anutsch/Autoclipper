@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="de.autoclipper.premiere" ExtensionBundleVersion="1.3.0" ExtensionBundleName="Autoclipper">
+<ExtensionList><Extension Id="de.autoclipper.premiere.window" Version="1.0.0"/></ExtensionList>
+<ExecutionEnvironment><HostList><Host Name="PPRO" Version="[25.0,99.9]"/></HostList><LocaleList><Locale Code="All"/></LocaleList><RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="12.0"/></RequiredRuntimeList></ExecutionEnvironment>
+<DispatchInfoList><Extension Id="de.autoclipper.premiere.window"><DispatchInfo><Resources><MainPath>./index.html</MainPath><ScriptPath>./host.jsx</ScriptPath><CEFCommandLine><Parameter>--allow-file-access-from-files</Parameter></CEFCommandLine></Resources><Lifecycle><AutoVisible>false</AutoVisible><StartOn><Event>com.adobe.csxs.events.ApplicationActivate</Event></StartOn></Lifecycle><UI><Type>Modeless</Type><Menu>Autoclipper</Menu><Geometry><Size><Width>340</Width><Height>450</Height></Size></Geometry></UI></DispatchInfo></Extension></DispatchInfoList></ExtensionManifest>
