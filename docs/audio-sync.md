@@ -17,3 +17,5 @@ Geprüft: mathematischer 6-Sekunden-Versatz, Ablehnung unabhängiger Signale/Sti
 Synchronisierte Mehrfachauswahlen reservieren vor dem Einfügen eine zusätzliche oberste Videospur. Darauf liegt einmalig „Titel“ ab 0 Sekunden für fünf Sekunden (bei kürzeren Sequenzen entsprechend kürzer). Die mitgelieferte MOGRT enthält den lokal gespeicherten Tiktok-Titelstil; das Schriftbild wird als Vorlagenkopie eingebettet und ist keine automatisch aktualisierte Verknüpfung zur lokalen Stilbibliothek. Die ursprünglichen Ansichtsspuren und Audiopegel bleiben unverändert.
 
 Die Vorlagendatei basiert auf einer Premiere-exportierten Titelgrafik mit dem serialisierten Quelltext-Stil aus „Tiktok Titel.prtextstyle“. Es ist ein interner Adobe-Dateiaufbau; die Darstellung muss noch einmal in Premiere geprüft werden. Ein fehlgeschlagener Titelimport wird ausdrücklich gemeldet.
+
+Die Titelroutine wird jetzt auch vom normalen Einzelclip-Import aufgerufen. Einmal je Sequenz, mit abgesichertem Vorlagenpfad und freier oberster Spur. Vorhandene Titel werden nicht dupliziert.

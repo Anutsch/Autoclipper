@@ -8,7 +8,7 @@ Lokales macOS-Tool für Twitch → Adobe Premiere Pro. Chrome sichert die MP4 ei
 - Permanente Chrome-Seitenleiste, Stream-Auswahl, Warteschlange und Abbruch.
 - Import ins offene Projekt; neue Sequenz je Auswahl, 1080 × 1920 mit 30 fps.
 - Bei Mehrfachauswahl: konservativer lokaler Audio-Abgleich und separate Video-/Audiospuren. Unsichere Treffer werden markiert.
-- Automatischer Titel auf der obersten Videospur bei synchronisierten Mehrfachauswahlen (Vorlage im Stil „Tiktok Titel“, 5 Sekunden ab Sequenzstart).
+- Automatischer Titel auf der obersten Videospur bei Einzel- und synchronisierten Mehrfachauswahlen (Vorlage im Stil „Tiktok Titel“, 5 Sekunden ab Sequenzstart).
 - Moment-Score aus Chat-Reaktionen, Emotes und kanalbezogenem Chattempo; Hover-Diagramm und visuelle Alarme.
 - Manuelle/optionale automatische Chat-Neuverbindung.
 - Kleine Video-Vorschaubilder, Dateiverwaltung über den Papierkorb und löschbare Logs.

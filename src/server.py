@@ -460,6 +460,14 @@ class Handler(BaseHTTPRequestHandler):
     STORE.update(j,status='downloading',message='MP4 gefunden …')
     threading.Thread(target=download,args=(j,d['url']),daemon=True).start()
    return {'ok':True}
+  if path=='/api/add-title':
+   if time.time()-STORE.premiere_time>8:raise ValueError('Premiere-Panel nicht verbunden.')
+   if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Bitte laufenden Auftrag abwarten.')
+   info=STORE.premiere
+   if not info.get('sequenceId') or not info.get('projectPath'):raise ValueError('Keine gespeicherte Sequenz aktiv.')
+   target=json.dumps({'sequenceId':info['sequenceId'],'projectPath':info['projectPath']})
+   job=STORE.add('title',path=target,channel='Titel')
+   STORE.update(job,status='premiere_wait',message='Titel wird in der aktiven Sequenz ergänzt …');return job
   if path=='/api/new-project':
    if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Ein neues Projekt wartet bereits auf Premiere.')
    project=STORE.project_path();j=STORE.add('project',path=project,keepPanel=d.get('keepPanel') is True)
@@ -509,7 +517,8 @@ class Handler(BaseHTTPRequestHandler):
    j=next((j for j in STORE.data['jobs'] if j['id']==d['id']),None)
    if j is None:return {'ok':True}
    if j['status']!='executing':return {'ok':True}
-   if d.get('ok'):STORE.update(j,status='done',message='Sequenznamen aktualisiert.' if j['kind']=='rename' else ('Projekt erstellt: '+Path(j['path']).stem if j['kind'] in ('project','ensure') else 'Ansichten in Premiere eingefuegt: '+str(d.get('project',''))))
+   if d.get('ok') and j['kind']=='title':STORE.update(j,status='done',message='Titel auf oberster Videospur ergänzt.')
+   elif d.get('ok'):STORE.update(j,status='done',message='Sequenznamen aktualisiert.' if j['kind']=='rename' else ('Projekt erstellt: '+Path(j['path']).stem if j['kind'] in ('project','ensure') else 'Ansichten in Premiere eingefuegt: '+str(d.get('project',''))))
    else:STORE.update(j,status='error',message=str(d.get('error','Premiere-Fehler')))
    if j.get('syncMemberIds'):
     if d.get('ok') and j.get('syncWarning'):STORE.update(j,message='Importiert · '+j['syncWarning'])
