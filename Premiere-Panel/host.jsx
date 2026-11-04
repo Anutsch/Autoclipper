@@ -179,17 +179,34 @@ AC.focusSequence=function(sequenceId,projectPath){
 };
 
 // Multi-view alignment is computed locally before Premiere receives the batch.
-AC.ensureSyncTracks=function(seq,count){
- if(seq.videoTracks.numTracks>=count && seq.audioTracks.numTracks>=count)return;
+AC.titleTemplatePath=(new File($.fileName)).parent.fsName+'/templates/autoclipper-title.mogrt';
+AC.ensureSyncTracks=function(seq,count,audioCount){
+ audioCount=audioCount===undefined?count:audioCount;
+ if(seq.videoTracks.numTracks>=count && seq.audioTracks.numTracks>=audioCount)return;
  app.enableQE();var qeSeq=qe.project.getActiveSequence();
  if(!qeSeq)throw Error('Spuren konnten nicht vorbereitet werden.');
  // Add tracks only to this newly owned sync sequence, before any view is placed.
- for(var tries=0;tries<16 && (seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<count);tries++){
+ for(var tries=0;tries<16 && (seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<audioCount);tries++){
   var v=seq.videoTracks.numTracks,a=seq.audioTracks.numTracks;
   qeSeq.addTracks(v<count?1:0);
   if(seq.videoTracks.numTracks===v&&seq.audioTracks.numTracks===a)throw Error('Premiere hat keine zusätzliche Spur angelegt.');
  }
- if(seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<count)throw Error('Nicht genügend getrennte Video-/Audiospuren verfügbar.');
+ if(seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<audioCount)throw Error('Nicht genügend getrennte Video-/Audiospuren verfügbar.');
+};
+AC.addSyncTitle=function(seq){
+ var tag='Autoclipper · Titel';
+ for(var t=0;t<seq.videoTracks.numTracks;t++)for(var c=0;c<seq.videoTracks[t].clips.numItems;c++)if(seq.videoTracks[t].clips[c].name===tag)return;
+ var template=new File(AC.titleTemplatePath);if(!template.exists)throw Error('Titelvorlage fehlt: '+template.fsName);
+ var top=seq.videoTracks.numTracks-1;
+ if(seq.videoTracks[top].clips.numItems)throw Error('Die oberste Titelspur ist nicht frei. Es wird nichts überschrieben.');
+ var sequenceEnd=new Time();sequenceEnd.ticks=String(seq.end);
+ var title=seq.importMGT(template.fsName,'0',top,0);
+ if(!title&&seq.videoTracks[top].clips.numItems===1)title=seq.videoTracks[top].clips[0];
+ if(!title)throw Error('Premiere konnte die Titelvorlage nicht einfügen.');
+ title.name=tag;
+ var end=new Time();end.seconds=Math.min(5,Math.max(1/30,sequenceEnd.seconds));title.end=end;
+ if(Math.abs(title.start.seconds)>1/30||seq.videoTracks[top].clips.numItems!==1||seq.videoTracks[top].clips[0].nodeId!==title.nodeId)throw Error('Premiere hat den Titel auf der obersten Spur nicht bestätigt.');
+ seq.videoTracks[top].name='Titel';
 };
 AC.executeSyncBatch=function(id,sources,targetProject){
  if(AC.cached[id])return AC.cached[id];
@@ -214,7 +231,7 @@ AC.executeSyncBatch=function(id,sources,targetProject){
   if(!populated){
    for(t=0;t<seq.videoTracks.numTracks;t++)for(c=seq.videoTracks[t].clips.numItems-1;c>=0;c--)seq.videoTracks[t].clips[c].remove(false,false);
    for(t=0;t<seq.audioTracks.numTracks;t++)for(c=seq.audioTracks[t].clips.numItems-1;c>=0;c--)seq.audioTracks[t].clips[c].remove(false,false);
-   AC.ensureSyncTracks(seq,sources.length);
+   AC.ensureSyncTracks(seq,sources.length+1,sources.length);
   }
   for(i=0;i<sources.length;i++){
    var source=sources[i],item=items[i],pb=source.playback,oldIn=item.getInPoint(4),oldOut=item.getOutPoint(4),offset=Number(source.syncOffset);
@@ -231,6 +248,9 @@ AC.executeSyncBatch=function(id,sources,targetProject){
     seq.videoTracks[i].name=String(source.channel||'Ansicht '+(i+1));seq.audioTracks[i].name=String(source.channel||'Audio '+(i+1));
    }finally{item.setInPoint(oldIn.seconds,4);item.setOutPoint(oldOut.seconds,4);}
   }
+  AC.addSyncTitle(seq);
+  // Adding graphics must never shift the synchronized views.
+  for(i=0;i<sources.length;i++){var check=AC.timelineClip(seq,sources[i].path);if(!check||Math.abs(check.start.seconds-Number(sources[i].syncOffset))>1/30)throw Error('Die Titelvorlage hat eine Ansicht verschoben. Bitte die Timeline prüfen.');}
   app.project.openSequence(seq.sequenceID);seq.setPlayerPosition('0');if(app.project.path)app.project.save();AC.cached[id]=AC.result(true,AC.projectName(),'');
  }catch(e){try{if(app.project.path)app.project.save();}catch(ignore){}AC.cached[id]=AC.result(false,AC.projectName(),String(e)+' (Zeile '+e.line+')');}
  return AC.cached[id];

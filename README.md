@@ -8,6 +8,7 @@ Lokales macOS-Tool für Twitch → Adobe Premiere Pro. Chrome sichert die MP4 ei
 - Permanente Chrome-Seitenleiste, Stream-Auswahl, Warteschlange und Abbruch.
 - Import ins offene Projekt; neue Sequenz je Auswahl, 1080 × 1920 mit 30 fps.
 - Bei Mehrfachauswahl: konservativer lokaler Audio-Abgleich und separate Video-/Audiospuren. Unsichere Treffer werden markiert.
+- Automatischer Titel auf der obersten Videospur bei synchronisierten Mehrfachauswahlen (Vorlage im Stil „Tiktok Titel“, 5 Sekunden ab Sequenzstart).
 - Moment-Score aus Chat-Reaktionen, Emotes und kanalbezogenem Chattempo; Hover-Diagramm und visuelle Alarme.
 - Manuelle/optionale automatische Chat-Neuverbindung.
 - Kleine Video-Vorschaubilder, Dateiverwaltung über den Papierkorb und löschbare Logs.
@@ -49,6 +50,6 @@ App, Chrome-Erweiterung und Premiere-Panel müssen aus demselben Build stammen. 
 
 Clippen verwendet weiterhin die Twitch-Clip-Vorschau des verbundenen Chrome-Tabs, nicht den unabhängigen Wiedergabepunkt im App-Player. Der Moment-Score benötigt geladenen Chat. Audio-Synchronisation braucht ausreichend gemeinsame Audiosignale; zusätzliche Premiere-Spuren verwenden die interne QE-Schnittstelle. Der letzte Synchronisationsumbau wurde noch nicht vollständig in Premiere live getestet.
 
-Der gewünschte automatische Titel- und Transkript-Stilablauf ist **noch nicht implementiert**.
+Die automatische Transkription mit Ein-Wort-Untertiteln und Transkript-Stil ist **noch nicht implementiert**. Der Titel-Zusatz für synchronisierte Gruppen ist vorlagenbasiert eingebaut; ein Premiere-Live-Test steht noch aus.
 
 Clips, Premiere-Projekte, Laufzeitdaten, Logs, Pairing-Tokens und kompilierte App-Bundles werden nicht versioniert. Der bestehende Desktop-Ordner wird vom Build nicht verändert.
