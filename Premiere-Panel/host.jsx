@@ -76,6 +76,7 @@ AC.addToTimeline=function(item,path,id,sequenceKey,sequenceId){
  var inserted=AC.timelineClip(seq,path);
  if(!inserted)throw Error('Premiere hat das Einfügen in die Timeline nicht bestätigt.');
  app.project.openSequence(seq.sequenceID);
+ AC.addFollowVideo(seq);
  AC.addTitle(seq);
  seq.setPlayerPosition(inserted.start.ticks);
  return seq.name;
@@ -198,6 +199,32 @@ AC.ensureSyncTracks=function(seq,count,audioCount){
  }
  if(seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<audioCount)throw Error('Nicht genügend getrennte Video-/Audiospuren verfügbar.');
 };
+// Place the reusable follow animation on its own layer without moving source clips.
+AC.followVideoPath='';
+AC.addFollowVideo=function(seq){
+ var path=AC.followVideoPath;
+ if(AC.timelineClip(seq,path))return;
+ if(!(new File(path)).exists)throw Error('Follow-Video fehlt: '+path);
+ var item=AC.findMedia(app.project.rootItem,path);
+ if(!item){
+  if(!app.project.importFiles([path],true,app.project.rootItem,false))throw Error('Follow-Video konnte nicht importiert werden.');
+  item=AC.findMedia(app.project.rootItem,path);
+ }
+ if(!item)throw Error('Importiertes Follow-Video fehlt.');
+ app.project.openSequence(seq.sequenceID);
+ var top=seq.videoTracks.numTracks-1;
+ if(top<0||seq.videoTracks[top].clips.numItems){
+  app.enableQE();var qeSeq=qe.project.getActiveSequence(),before=seq.videoTracks.numTracks;
+  if(!qeSeq)throw Error('Follow-Videospur konnte nicht erstellt werden.');
+  qeSeq.addTracks(1,before,0);top=seq.videoTracks.numTracks-1;
+  if(seq.videoTracks.numTracks<=before||seq.videoTracks[top].clips.numItems)throw Error('Keine freie Follow-Videospur.');
+ }
+ // Use the video-track API so no linked audio can overwrite stream audio.
+ seq.videoTracks[top].overwriteClip(item,'0');
+ var placed=AC.timelineClip(seq,path);
+ if(!placed||Math.abs(placed.start.seconds)>1/30)throw Error('Follow-Video wurde in der Timeline nicht bestätigt.');
+ seq.videoTracks[top].name='Follow';
+};
 AC.addTitle=function(seq){
  if(!seq)throw Error('Keine aktive Sequenz für den Titel.');
  var tag='Autoclipper · Titel';
@@ -260,6 +287,7 @@ AC.executeSyncBatch=function(id,sources,targetProject){
     seq.videoTracks[i].name=String(source.channel||'Ansicht '+(i+1));seq.audioTracks[i].name=String(source.channel||'Audio '+(i+1));
    }finally{item.setInPoint(oldIn.seconds,4);item.setOutPoint(oldOut.seconds,4);}
   }
+  AC.addFollowVideo(seq);
   AC.addTitle(seq);
   // Adding graphics must never shift the synchronized views.
   for(i=0;i<sources.length;i++){var check=AC.timelineClip(seq,sources[i].path);if(!check||Math.abs(check.start.seconds-Number(sources[i].syncOffset))>1/30)throw Error('Die Titelvorlage hat eine Ansicht verschoben. Bitte die Timeline prüfen.');}
