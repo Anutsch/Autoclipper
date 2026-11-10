@@ -1,7 +1,7 @@
 
 import Cocoa
 import WebKit
-class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
  var window:NSWindow!;var web:WKWebView!;var task:Process?;var root:URL!;var port=18743
  func applicationDidFinishLaunching(_ n:Notification){
   let p=Process()
@@ -23,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   let log=root.appendingPathComponent("app.log");if !FileManager.default.fileExists(atPath:log.path){FileManager.default.createFile(atPath:log.path,contents:nil)}
   let handle=try? FileHandle(forWritingTo:log);handle?.seekToEndOfFile();p.standardOutput=handle;p.standardError=handle
   do{try p.run();task=p}catch{let a=NSAlert();a.messageText="Autoclipper konnte nicht starten";a.informativeText=error.localizedDescription;a.runModal()}
-  let config=WKWebViewConfiguration();config.mediaTypesRequiringUserActionForPlayback=[];if #available(macOS 12.3, *){config.preferences.isElementFullscreenEnabled=true};web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=self
+  let config=WKWebViewConfiguration();config.mediaTypesRequiringUserActionForPlayback=[];if #available(macOS 12.3, *){config.preferences.isElementFullscreenEnabled=true};web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=self;web.uiDelegate=self
   window=NSWindow(contentRect:NSRect(x:0,y:0,width:940,height:860),styleMask:[.titled,.closable,.miniaturizable,.resizable],backing:.buffered,defer:false)
   window.title="Autoclipper · Status & Verwaltung";window.minSize=NSSize(width:650,height:650);window.contentView=web;window.center();window.makeKeyAndOrderFront(nil)
   NSApp.setActivationPolicy(.regular);NSApp.activate(ignoringOtherApps:true)
@@ -38,6 +38,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
    else if attempt<40{DispatchQueue.main.asyncAfter(deadline:.now()+0.25){self.load(attempt:attempt+1)}}
    else{self.web.loadHTMLString("<body style='background:#181820;color:white;font:18px system-ui;padding:40px'>Autoclipper konnte nicht starten. Details stehen in app.log im Auto-Clipper-Ordner.</body>",baseURL:nil)}
   }}.resume()
+ }
+ @available(macOS 10.12, *)
+ func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,
+              initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
+  guard frame.isMainFrame, frame.securityOrigin.host == "127.0.0.1" else {
+   completionHandler(nil)
+   return
+  }
+  let panel = NSOpenPanel()
+  panel.canChooseFiles = true
+  panel.canChooseDirectories = false
+  panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+  panel.allowedFileTypes = ["mov", "mp4", "png", "jpg", "jpeg"]
+  panel.beginSheetModal(for: window) { result in
+   completionHandler(result == .OK ? panel.urls : nil)
+  }
  }
  func webView(_ webView:WKWebView,decidePolicyFor navigationAction:WKNavigationAction,decisionHandler:@escaping(WKNavigationActionPolicy)->Void){
   guard let u=navigationAction.request.url else {decisionHandler(.cancel);return}

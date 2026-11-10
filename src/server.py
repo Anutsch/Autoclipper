@@ -1,11 +1,12 @@
 #!/usr/bin/python3
-import hashlib, json, os, re, secrets, subprocess, threading, time, uuid, webbrowser
+import hashlib, json, os, re, secrets, subprocess, sys, threading, time, uuid, webbrowser
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.request import Request, build_opener, HTTPRedirectHandler
-from urllib.parse import urlsplit, parse_qs
+from urllib.parse import urlsplit, parse_qs, unquote
 from audio_sync import synchronize
-from clip_design import MAX_REQUEST, prepare_design
+from clip_design import ASSET_TYPES, MAX_REQUEST, prepare_design, save_asset
+from face_camera import inspect_camera, make_camera, validate_crop
 from editors import NAMES, destination, handoff, running_editors
 from platform_tools import acquire_lock, install_panel, launch_premiere, open_chrome_setup, open_folder, panel_directory, reveal_media, show_app, thumbnail_command, trash_file
 ROOT=Path(__file__).resolve().parent.parent
@@ -143,8 +144,11 @@ class Store:
    recent={j['id'] for j in self.data['jobs'][-30:]}
    jobs=[dict(j,retryable=self.retryable(j),hasMedia=bool(self.saved_media(j))) for j in self.data['jobs'] if j['id'] in recent or j['status'] not in TERMINAL]
    for job in jobs:
+    if job['status']=='import_wait' and job.get('cameraState') in ('analyse','render','review'):
+     job['message']={'analyse':'Facecam wird gesucht …','render':'Facecam wird vorbereitet …','review':'Facecam-Ausschnitt in Autoclipper prüfen.'}[job['cameraState']]
+     continue
     if job['status']=='import_wait' and job.get('awaitingDesign'):
-     job['message']='Wartet auf Gestaltung im Premiere-Panel.'
+     job['message']='Wartet auf Gestaltung in Autoclipper.'
    try:
     installed=(panel_directory()/'panel.js').read_bytes()==(self.root/'Premiere-Panel/panel.js').read_bytes()
    except OSError:
@@ -227,22 +231,59 @@ def download(j,url):
   STORE.update(j,status='error',message=str(e))
   if j.get('parentId'):STORE.finish_batch(j['parentId'])
 
+def prepare_camera(job):
+ phase=job['cameraState']
+ directory=ROOT/'Projekte'/'Autoclipper Assets'/'Camera'
+ directory.mkdir(parents=True,exist_ok=True)
+ preview=directory/(job['id']+'.jpg')
+ final=directory/(job['id']+'-Cam.mp4')
+ temporary=directory/(job['id']+'.part.mp4')
+ cancelled=lambda:job['status'] in TERMINAL or job.get('cancelRequested')
+ try:
+  source=dict(job['sources'][0])
+  if phase=='analyse':
+   crop=inspect_camera(ROOT,source,preview,cancelled)
+   with LOCK:
+    if not cancelled():
+     STORE.update(job,cameraCrop=crop,cameraState='render' if crop else 'review')
+  else:
+   if job.get('editor','premiere')!='premiere':
+    source['playback']={'start':0,'end':mp4_duration(Path(source['path']))}
+   make_camera(ROOT,source,job['cameraCrop'],temporary,cancelled)
+   with LOCK:
+    if not cancelled():
+     temporary.replace(final)
+     STORE.update(job,cameraState='done',cameraPath=str(final),cameraWarning='')
+ except Exception:
+  with LOCK:
+   if not cancelled():
+    STORE.update(job,cameraState='review' if phase=='analyse' and preview.is_file() else 'skipped',
+                 cameraWarning='Facecam konnte nicht automatisch erstellt werden.')
+ finally:
+  temporary.unlink(missing_ok=True)
+  if job.get('cameraState') not in ('review','render'):
+   preview.unlink(missing_ok=True)
+
 def queue_loop():
  while True:
-  job=None;child=None;leader=None;external=None
+  job=None;child=None;leader=None;external=None;camera=None
   with LOCK:
    for member in STORE.data['jobs']:
     if member['status']=='sync_follow':
      owner=next((j for j in STORE.data['jobs'] if member['id'] in j.get('syncMemberIds',[])),None)
      if owner and owner['status'] in TERMINAL:STORE.update(member,status=owner['status'],message=owner['message'],syncWarning=owner.get('syncWarning',''))
    first=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
+   camera=next((j for j in STORE.data['jobs'] if j['status']=='import_wait'
+                and j.get('cameraState') in ('analyse','render')
+                and (not j.get('queueEntry') or j is first)),None)
    ready=next((j for j in STORE.data['jobs'] if j['status']=='import_wait'
-               and j.get('editor','premiere')!='premiere'
+               and j.get('editor','premiere')!='premiere' and not j.get('awaitingDesign')
+               and j.get('cameraState') not in ('analyse','render','review')
                and (not j.get('queueEntry') or j is first)),None)
-   if ready:
+   if not camera and ready:
     external=ready
     STORE.update(ready,status='executing',message=NAMES[ready['editor']]+' · MP4s werden übergeben …')
-   elif first:
+   elif not camera and first:
     group=[j for j in STORE.data['jobs'] if j.get('captureGroup')==first.get('captureGroup')] if first.get('syncMode') else [first]
     candidate=next((j for j in group if j['status']=='download_wait'),None)
     if candidate:
@@ -260,10 +301,12 @@ def queue_loop():
       else:
        STORE.update(leader,status='import_wait',message='MP4s sind bereit.')
        leader=None
-  if external:
+  if camera:
+   prepare_camera(camera)
+  elif external:
    try:
     paths=[source['path'] for source in external['sources']] if external['kind']=='batch' else [external['path']]
-    message=handoff(external['editor'],paths,external.get('editorImportId',external['id']))
+    message=handoff(external['editor'],paths,external.get('editorImportId',external['id']),ROOT,external.get('design',{}),external.get('cameraPath'))
     STORE.update(external,status='done',message=message)
    except Exception as error:
     STORE.update(external,status='error',message=str(error)+' MP4s bleiben gespeichert.')
@@ -304,8 +347,8 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if self.path=='/assets/logo.png':
    body=(ROOT/'assets'/'logo.png').read_bytes();self.send_response(200);self.send_header('Content-Type','image/png');self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
-  if self.path=='/i18n.js':
-   body=(ROOT/'src'/'i18n.js').read_bytes()
+  if self.path in ('/i18n.js','/clip-design.js','/camera-review.js','/setup-flow.js','/controls.js'):
+   body=(ROOT/'src'/self.path[1:]).read_bytes()
    self.send_response(200);self.send_header('Content-Type','text/javascript; charset=utf-8')
    self.send_header('Content-Length',str(len(body)));self.send_header('Cache-Control','no-store')
    self.end_headers();return self.wfile.write(body)
@@ -319,23 +362,58 @@ class Handler(BaseHTTPRequestHandler):
   if urlsplit(self.path).path=='/api/thumbnail':
    name=parse_qs(urlsplit(self.path).query).get('name',[''])[0];folder=ROOT/'Clips';source=folder/name
    if Path(name).name!=name or not name.endswith('.mp4') or source.is_symlink() or not source.is_file() or source.resolve().parent!=folder.resolve():return self.reply({'error':'Datei nicht vorhanden.'},404)
-   cache=ROOT/'.thumbnails';cache.mkdir(exist_ok=True);output=cache/(hashlib.sha256(name.encode()).hexdigest()+'.jpg')
+   return self.media_thumbnail(source)
+  if urlsplit(self.path).path=='/api/design-preview':
+   value=parse_qs(urlsplit(self.path).query).get('path',[''])[0]
    try:
-    if not output.exists() or output.stat().st_mtime<source.stat().st_mtime:
-     temp=output.with_name(output.stem+'-'+uuid.uuid4().hex+'.jpg')
-     try:
-      result=subprocess.run(thumbnail_command(ROOT,source,temp),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8)
-      if result.returncode or not temp.is_file():raise ValueError('Keine Vorschau verfügbar.')
-      temp.replace(output)
-     finally:temp.unlink(missing_ok=True)
-    body=output.read_bytes();self.send_response(200);self.headers_out();self.send_header('Content-Type','image/jpeg');self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
-   except Exception:return self.reply({'error':'Keine Vorschau verfügbar.'},404)
+    source=Path(value).resolve(strict=True)
+    uploads=(ROOT/'Projekte'/'Autoclipper Assets'/'Overlays').resolve()
+    with LOCK:
+     saved=STORE.data.get('preferences',{}).get('clipDesign',{}).get('assets',[])
+     allowed=source.parent==uploads or str(source) in saved
+    if not allowed or not source.is_file() or source.suffix.lower() not in ASSET_TYPES:
+     raise ValueError()
+   except (OSError,ValueError,RuntimeError):
+    return self.reply({'error':'Keine Vorschau verfügbar.'},404)
+   return self.media_thumbnail(source)
+  if urlsplit(self.path).path=='/api/camera-preview':
+   identifier=parse_qs(urlsplit(self.path).query).get('id',[''])[0]
+   if not re.fullmatch('[0-9a-f]{32}',identifier):
+    return self.reply({'error':'Camera preview unavailable.'},404)
+   preview=ROOT/'Projekte'/'Autoclipper Assets'/'Camera'/(identifier+'.jpg')
+   try:body=preview.read_bytes()
+   except OSError:return self.reply({'error':'Camera preview unavailable.'},404)
+   self.send_response(200);self.headers_out();self.send_header('Content-Type','image/jpeg')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
   if self.path=='/api/state':return self.reply(STORE.view())
   return self.reply({'error':'Nicht gefunden'},404)
+ def media_thumbnail(self,source):
+  try:
+   key=hashlib.sha256(str(source).encode()).hexdigest()
+   cache=ROOT/'.thumbnails';cache.mkdir(exist_ok=True);output=cache/(key+'.jpg')
+   if not output.exists() or output.stat().st_mtime_ns<source.stat().st_mtime_ns:
+    temp=output.with_name(output.stem+'-'+uuid.uuid4().hex+'.jpg')
+    try:
+     if source.suffix.lower() in ('.png','.jpg','.jpeg') and sys.platform=='darwin':
+      command=['/usr/bin/sips','-s','format','jpeg','-Z','320',str(source),'--out',str(temp)]
+     else:
+      command=thumbnail_command(ROOT,source,temp)
+     result=subprocess.run(command,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8)
+     if result.returncode or not temp.is_file():raise ValueError()
+     temp.replace(output)
+    finally:temp.unlink(missing_ok=True)
+   body=output.read_bytes()
+   self.send_response(200);self.headers_out();self.send_header('Content-Type','image/jpeg')
+   self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
+  except (OSError,ValueError,subprocess.TimeoutExpired):
+   return self.reply({'error':'Keine Vorschau verfügbar.'},404)
  def do_POST(self):
   if not self.auth():return self.reply({'error':'Nicht autorisiert'},403)
   try:
    length=int(self.headers.get('Content-Length','0'))
+   if self.path=='/api/design-asset':
+    asset=save_asset(ROOT,unquote(self.headers.get('X-Asset-Name','')),length,self.rfile)
+    return self.reply({'path':asset})
    if length>(MAX_REQUEST if self.path=='/api/clip-design' else 200000):raise ValueError('Anfrage zu groß')
    data=json.loads(self.rfile.read(length) or b'{}')
    with LOCK: result=self.action(self.path,data)
@@ -353,6 +431,16 @@ class Handler(BaseHTTPRequestHandler):
    STORE.data.setdefault('preferences',{})['editor']=editor;STORE.save();return {'ok':True}
   if path=='/api/open-premiere':
    launch_premiere();return {'ok':True}
+  if path=='/api/setup-progress':
+   step=d.get('step')
+   complete=d.get('complete')
+   if type(step) is not int or not 0<=step<4 or type(complete) is not bool:
+    raise ValueError('Invalid setup progress.')
+   preferences=STORE.data.setdefault('preferences',{})
+   preferences['setupStep']=step
+   if complete:
+    preferences['setupComplete']=True
+   STORE.save();return {'ok':True}
   if path=='/api/language':
    locale=d.get('locale')
    if locale not in ('de','en-GB','en-US','es'):raise ValueError('Unsupported language.')
@@ -386,6 +474,10 @@ class Handler(BaseHTTPRequestHandler):
    job=next((job for job in STORE.data['jobs'] if job['id']==d.get('id')),None)
    paths=STORE.saved_media(job) if job else []
    if not paths:raise ValueError('Keine gespeicherte MP4 vorhanden.')
+   if job.get('editor')=='capcut':
+    folder=ROOT/'Projekte'/'CapCut'/job.get('editorImportId',job['id'])
+    if folder.is_dir():
+     open_folder(folder);return {'ok':True}
    reveal_media(paths);return {'ok':True}
   if path=='/api/show-app':
    show_app(ROOT,PORT);return {'ok':True}
@@ -461,12 +553,13 @@ class Handler(BaseHTTPRequestHandler):
     except OSError:
      STORE.update(bootstrap,status='error',message='Premiere konnte nicht gestartet werden.');raise ValueError('Premiere konnte nicht gestartet werden.')
    preferences=STORE.data.get('preferences',{})
-   design=preferences.get('clipDesign',{}) if editor=='premiere' else {}
-   awaiting=editor=='premiere' and preferences.get('holdDesign') is True
+   design=preferences.get('clipDesign',{})
+   camera='analyse' if preferences.get('autoCamera') is True else 'off'
+   awaiting=preferences.get('holdDesign') is True
    group=uuid.uuid4().hex;jobs=[]
    for tab in chosen:
     child=dict(id=uuid.uuid4().hex,kind='clip',status='capturing',tabId=tab['id'],channel=tab.get('title','Twitch'),sequenceKey=group)
-    job=STORE.add('batch',queueEntry=True,captureGroup=group,editor=editor,design=design,awaitingDesign=awaiting,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
+    job=STORE.add('batch',queueEntry=True,captureGroup=group,editor=editor,design=design,cameraState=camera,awaitingDesign=awaiting,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
     child['parentId']=job['id'];jobs.append(job)
    STORE.save()
    return dict(jobs[0],captureJobs=jobs)
@@ -525,6 +618,21 @@ class Handler(BaseHTTPRequestHandler):
     STORE.update(j,status='downloading',message='MP4 gefunden …')
     threading.Thread(target=download,args=(j,d['url']),daemon=True).start()
    return {'ok':True}
+  if path=='/api/camera-preference':
+   enabled=d.get('enabled')
+   if type(enabled) is not bool:raise ValueError('Invalid camera setting.')
+   STORE.data.setdefault('preferences',{})['autoCamera']=enabled
+   STORE.save();return {'ok':True}
+  if path=='/api/camera-review':
+   job=next((entry for entry in STORE.data['jobs'] if entry['id']==d.get('id')),None)
+   if not job or job['status']!='import_wait' or job.get('cameraState')!='review':
+    raise ValueError('This camera review is no longer available.')
+   if d.get('skip') is True:
+    STORE.update(job,cameraState='skipped',cameraWarning='')
+    (ROOT/'Projekte'/'Autoclipper Assets'/'Camera'/(job['id']+'.jpg')).unlink(missing_ok=True)
+   else:
+    STORE.update(job,cameraState='render',cameraCrop=validate_crop(d.get('crop')))
+   return {'ok':True}
   if path=='/api/design-hold':
    hold=d.get('hold')
    if type(hold) is not bool:raise ValueError('Invalid design setting.')
@@ -534,7 +642,7 @@ class Handler(BaseHTTPRequestHandler):
    job_id=d.get('jobId')
    if job_id:
     job=next((entry for entry in STORE.data['jobs'] if entry['id']==job_id),None)
-    if not job or job['kind'] not in ('batch','clip') or job.get('editor','premiere')!='premiere' or job['status'] in TERMINAL|{'executing'}:
+    if not job or job['kind'] not in ('batch','clip') or job['status'] in TERMINAL|{'executing'}:
      raise ValueError('This clip is already importing or finished.')
     group=job.get('captureGroup')
     members=[entry for entry in STORE.data['jobs'] if entry is job or (group and entry.get('captureGroup')==group)]
@@ -578,12 +686,12 @@ class Handler(BaseHTTPRequestHandler):
     if not STORE.retryable(old):raise ValueError('Nicht alle MP4-Dateien sind noch vorhanden. Bitte in Chrome erneut clippen.')
     import copy
     sources=copy.deepcopy(old['sources'])
-    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=STORE.premiere.get('project','') if editor=='premiere' and time.time()-STORE.premiere_time<8 else '',retryOf=old['id'],editor=editor,editorImportId=import_id,design=old.get('design',{}) if editor=='premiere' else {})
+    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=STORE.premiere.get('project','') if editor=='premiere' and time.time()-STORE.premiere_time<8 else '',retryOf=old['id'],editor=editor,editorImportId=import_id,design=old.get('design',{}),cameraPath=old.get('cameraPath') if editor==old.get('editor','premiere') else None,cameraState='analyse' if editor!=old.get('editor','premiere') and old.get('cameraPath') and old['kind']=='batch' else 'off')
     for source in sources:source['parentId']=j['id']
     STORE.update(j,status='import_wait',path=json.dumps({'sources':sources,'targetProject':j['targetProject']},ensure_ascii=True),message='Gespeicherte MP4s · '+NAMES[editor])
     return j
    if old['status'] not in TERMINAL or not old.get('path') or not Path(old['path']).is_file() or Path(old['path']).suffix!='.mp4':raise ValueError('Keine heruntergeladene MP4 zum Importieren.')
-   j=STORE.add('clip',path=old['path'],editor=editor,editorImportId=import_id,design=old.get('design',{}) if editor=='premiere' else {});STORE.update(j,status='import_wait',message='Wartet auf '+NAMES[editor]+' …');return j
+   j=STORE.add('clip',path=old['path'],editor=editor,editorImportId=import_id,design=old.get('design',{}),cameraPath=old.get('cameraPath') if editor==old.get('editor','premiere') else None,cameraState='analyse' if editor!=old.get('editor','premiere') and old.get('cameraPath') and old['kind']=='batch' else 'off');STORE.update(j,status='import_wait',message='Wartet auf '+NAMES[editor]+' …');return j
   if path=='/api/premiere':
    STORE.premiere={'connected':True,'project':str(d.get('project','')),'sequence':str(d.get('sequence','')),'sequenceId':str(d.get('sequenceId','')),'projectPath':str(d.get('projectPath','')),'width':d.get('width'),'height':d.get('height'),'fps':d.get('fps')};STORE.premiere_time=time.time()
    # No lease expiry: uncertain script execution must never create a second project.
@@ -592,7 +700,7 @@ class Handler(BaseHTTPRequestHandler):
     for pending in STORE.data['jobs']:
      if pending['status']=='import_wait' and pending.get('bootstrapError'):STORE.update(pending,status='error',message=pending['bootstrapError'])
     first_queue=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
-    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested') and not j.get('awaitingDesign')),None)
+    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested') and not j.get('awaitingDesign') and j.get('cameraState') not in ('analyse','render','review')),None)
     if job:STORE.update(job,status='executing',message='Premiere erstellt das Projekt …' if job['kind']=='project' else 'Premiere importiert die MP4 …')
    return {'job':job}
   if path=='/api/premiere-result':

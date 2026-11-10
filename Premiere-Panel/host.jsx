@@ -210,11 +210,12 @@ AC.pickDesignAssets=function(){
 AC.addDesign=function(seq,design){
  if(!design)return;
  var paths=(design.assets||[]).slice(0);
+ if(design.cameraPath)paths.unshift(design.cameraPath);
  if(design.titlePath)paths.push(design.titlePath);
  if(!paths.length)return;
  var end=new Time();end.ticks=String(seq.end);
  for(var i=0;i<paths.length;i++){
-  var path=paths[i],isTitle=path===design.titlePath;
+  var path=paths[i],isTitle=path===design.titlePath,isCamera=path===design.cameraPath;
   if(AC.timelineClip(seq,path))continue;
   var item=AC.findMedia(app.project.rootItem,path);
   if(!item){
@@ -223,8 +224,10 @@ AC.addDesign=function(seq,design){
    item=AC.findMedia(app.project.rootItem,path);
   }
   if(!item)throw Error('Imported overlay is missing.');
-  var top=seq.videoTracks.numTracks-1;
-  if(top<0||seq.videoTracks[top].clips.numItems){
+  var top=0;
+  for(var t=0;t<seq.videoTracks.numTracks;t++)
+   if(seq.videoTracks[t].clips.numItems)top=t+1;
+  if(top>=seq.videoTracks.numTracks){
    app.project.openSequence(seq.sequenceID);
    app.enableQE();
    var qeSeq=qe.project.getActiveSequence(),count=seq.videoTracks.numTracks;
@@ -235,15 +238,30 @@ AC.addDesign=function(seq,design){
     throw Error('No empty overlay track is available.');
   }
   var track=seq.videoTracks[top];
-  track.overwriteClip(item,'0');
+  var start=new Time();
+  start.seconds=isCamera?Number(design.cameraOffset||0):0;
+  track.overwriteClip(item,start.ticks);
   var placed=AC.timelineClip(seq,path);
-  if(!placed||Math.abs(placed.start.seconds)>1/30||track.clips.numItems!==1)
+  if(!placed||Math.abs(placed.start.seconds-start.seconds)>1/30||track.clips.numItems!==1)
    throw Error('Premiere did not confirm the overlay placement.');
   var trim=new Time();
   trim.seconds=isTitle?Math.min(end.seconds,Number(design.duration||5)):Math.min(placed.end.seconds,end.seconds);
   placed.end=trim;
+  if(isCamera){
+   for(var c=0;c<placed.components.numItems;c++){
+    var component=placed.components[c];
+    if(/ADBE Motion$/.test(component.matchName)||/^(Motion|Bewegung|Movimiento)$/.test(component.displayName)){
+     // Position is normalised to sequence size. The cropped source retains its centred anchor.
+     var property=component.properties[0],position=property.getValue(),settings=seq.getSettings();
+     var pixels=position&&position.length===2&&Math.abs(position[0])>1;
+     property.setValue(pixels?[settings.videoFrameWidth/2,settings.videoFrameHeight*.18]:[0.5,0.18],1);
+     break;
+    }
+   }
+   placed.name='Facecam';
+  }
   if(isTitle)placed.name=String(design.title);
-  track.name=isTitle?'Autoclipper Title':'Autoclipper Overlay';
+  track.name=isCamera?'Facecam':isTitle?'Autoclipper Title':'Autoclipper Overlay';
  }
 };
 AC.executeSyncBatch=function(id,sources,targetProject,design){

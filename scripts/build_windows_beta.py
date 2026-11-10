@@ -2,6 +2,8 @@
 """Assemble a portable Windows x64 ZIP from pinned, verified components."""
 import hashlib
 import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
@@ -52,6 +54,10 @@ def main():
                          '0c31227e0bd08961c7665474a3d1ef7193929fedda4233843689baa056be46c9')
         with zipfile.ZipFile(trash) as archive:
             archive.extractall(stage / 'vendor')
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check',
+                        '--platform', 'win_amd64', '--python-version', '3.12',
+                        '--only-binary=:all:', '--no-deps', '--target', str(stage / 'vendor'),
+                        'opencv-python-headless==4.11.0.86', 'numpy==2.2.6'], check=True)
         for name in ('src', 'Chrome-Erweiterung', 'Premiere-Panel', 'assets'):
             shutil.copytree(ROOT / name, stage / 'templates' / name,
                             ignore=shutil.ignore_patterns('__pycache__', '.DS_Store'))

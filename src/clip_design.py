@@ -3,11 +3,15 @@ import base64
 import binascii
 import hashlib
 import math
+import os
+import shutil
+import tempfile
 import struct
 from pathlib import Path
 
 ASSET_TYPES = {'.mov', '.mp4', '.png', '.jpg', '.jpeg'}
 MAX_REQUEST = 3_000_000
+MAX_ASSET_BYTES = 512 * 1024 * 1024
 
 
 def prepare_design(root, data):
@@ -29,7 +33,7 @@ def prepare_design(root, data):
     if not isinstance(title, str) or len(title) > 160:
         raise ValueError('The title can contain up to 160 characters.')
     style = data.get('style', {})
-    if not isinstance(style, dict) or len(style) > 12:
+    if not isinstance(style, dict) or len(style) > 16:
         raise ValueError('Invalid title style.')
     duration = data.get('duration', 5)
     if type(duration) not in (int, float) or not math.isfinite(duration) or not 1 <= duration <= 15:
@@ -58,3 +62,70 @@ def prepare_design(root, data):
         temporary.replace(path)
     design['titlePath'] = str(path)
     return design
+
+
+def save_asset(root, name, length, stream):
+    suffix = Path(name).suffix.lower()
+    if suffix not in ASSET_TYPES or not 0 < length <= MAX_ASSET_BYTES:
+        raise ValueError('Choose a MOV, MP4, PNG or JPG file up to 512 MB.')
+    label = ''.join(char for char in Path(name).stem if char.isalnum() or char in ' _-')[:80]
+    folder = root / 'Projekte' / 'Autoclipper Assets' / 'Overlays'
+    folder.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256()
+    with tempfile.NamedTemporaryFile(dir=folder, delete=False) as temporary:
+        temp = Path(temporary.name)
+        try:
+            remaining = length
+            while remaining:
+                block = stream.read(min(remaining, 1024 * 1024))
+                if not block:
+                    raise ValueError('The overlay upload was interrupted.')
+                digest.update(block)
+                temporary.write(block)
+                remaining -= len(block)
+            temporary.close()
+            path = folder / (digest.hexdigest()[:20] + '-' + (label or 'overlay') + suffix)
+            if not path.exists():
+                os.replace(temp, path)
+            return str(path)
+        finally:
+            temporary.close()
+            temp.unlink(missing_ok=True)
+
+
+def overlay_paths(design):
+    return list(dict.fromkeys([*design.get('assets', []),
+                               *([design['titlePath']] if design.get('titlePath') else [])]))
+
+
+def capcut_folder(root, paths, design, job_id):
+    overlays = overlay_paths(design)
+    if not overlays:
+        return None
+    target = root / 'Projekte' / 'CapCut' / job_id
+    target.mkdir(parents=True, exist_ok=True)
+    groups = [('Clips', paths), ('Overlays', overlays)]
+    for group, files in groups:
+        folder = target / group
+        folder.mkdir(exist_ok=True)
+        for index, value in enumerate(files, 1):
+            source = Path(value)
+            if not source.is_file():
+                raise ValueError('Overlay file missing: ' + source.name)
+            output = folder / (str(index).zfill(2) + '-' + source.name)
+            if output.exists() and output.samefile(source):
+                continue
+            if output.exists():
+                # A previous copy may be in use by CapCut.
+                continue
+            try:
+                os.link(source, output)
+            except OSError:
+                with tempfile.NamedTemporaryFile(dir=folder, delete=False) as temporary:
+                    temp = Path(temporary.name)
+                try:
+                    shutil.copy2(source, temp)
+                    os.replace(temp, output)
+                finally:
+                    temp.unlink(missing_ok=True)
+    return target

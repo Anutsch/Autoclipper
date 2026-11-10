@@ -54,25 +54,184 @@ html,*{scrollbar-width:none}*::-webkit-scrollbar{width:0;height:0;display:none}
 
 .setup-checks{display:grid;gap:8px;margin:14px 0}.setup-step{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:#ffffff09}.setup-ready{color:#a6dfbd}.setup-wait{color:#e1bf89}.setup-step button{white-space:nowrap}#editorChoice{color:var(--text);background:#1b1b2b;border:1px solid var(--line);border-radius:6px;max-width:145px}
 .language-picker{display:inline-flex;align-items:center;gap:8px;font-size:12px}.language-picker select{color-scheme:dark;font:inherit;max-width:100%;padding:3px 6px;border-radius:6px}
+.design-editor{margin:12px 0;padding:10px;border:1px solid #ffffff20;border-radius:10px}
+.design-editor summary{cursor:pointer;font-weight:600}.design-editor label{display:block;margin:7px 0;font-size:12px}
+.design-editor textarea,.design-editor select,.design-editor input:not([type=checkbox]){display:block;width:100%;box-sizing:border-box;color:inherit;background:#181821;border:1px solid #ffffff25;border-radius:5px;padding:4px}
+.design-inspector{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,28%);gap:16px;align-items:start;margin:8px 0 14px}
+.design-properties{min-width:0}.design-properties h3{font-size:12px;margin:0;color:var(--muted)}
+.design-section{padding:10px 0;border-bottom:1px solid var(--line)}
+.design-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 8px}
+.design-style-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.design-style-row>label:first-child{flex:1;min-width:100px}
+.design-editor input[type=color]{height:32px}.design-editor input[type=range]{accent-color:#c4a8eb;padding:0;border:0}
+.design-size-label{display:flex;justify-content:space-between}.design-size-label output{color:#dbc5f9;font-variant-numeric:tabular-nums}
+.design-format{display:flex;gap:4px;margin:7px 0}.design-format button{min-width:32px}
+.design-format button[aria-pressed=true]{background:#a684d544;border-color:#c4a8eb;color:#f2e5ff}
+.design-preview{width:100%;max-width:212px;margin:0;justify-self:end;text-align:right;color:var(--muted);font-size:11px}
+#titlePreview{display:block;box-sizing:border-box;width:100%;height:auto;aspect-ratio:9/16;margin-bottom:5px;border:1px solid var(--line);border-radius:8px;background:#141421}
+#designAssets{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:5px;margin:6px 0;padding:0;list-style:none}
+#designAssets li{display:flex;align-items:center;gap:7px;min-width:0}#designAssets .asset-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asset-preview{display:grid;place-items:center;width:50px;height:34px;flex:none;background:#141421;border:1px solid var(--line);border-radius:5px;overflow:hidden;color:var(--muted)}
+.asset-preview img{width:100%;height:100%;object-fit:contain}
+@media(max-width:460px){.design-inspector{gap:8px}.design-grid{grid-template-columns:minmax(0,1fr)}}
+.design-defaults{margin:9px 0 12px;padding:8px;background:#6eb5ff10;border-radius:6px}.design-defaults p{margin:0 0 6px}.design-help{color:var(--muted)}#saveDesign{border-color:#6eb5ff99}.design-buttons{flex-wrap:wrap}.design-editor [hidden]{display:none!important}
+
+.camera-tools{margin-top:10px;padding:10px 14px}.camera-tools p:empty{display:none}
+.camera-preview{position:relative;width:min(100%,620px);touch-action:none;cursor:crosshair;margin-bottom:8px}
+.camera-preview img{display:block;width:100%;user-select:none;pointer-events:none}
+#cameraSelection{position:absolute;border:2px solid #bc9cff;background:#9f63ff30;pointer-events:none;box-sizing:border-box}
+
+.activity-shortcut{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#ffffff09;border-radius:10px;padding:4px 8px;color:inherit;cursor:pointer}
+.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
+.settings-heading h1{font-size:23px;margin:0}.settings-grid{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:14px}
+.settings-group,.settings-grid .design-editor{margin:0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#ffffff06}
+.settings-group h2{font-size:14px;margin:0 0 12px}.settings-group label{display:block;margin:8px 0}
+.settings-group select{margin-left:5px}.settings-connections{grid-row:span 2}.settings-grid .design-editor{grid-column:1/-1}
+.settings-footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.settings-footer button,.settings-heading button,.setup-guide button,.camera-tools button{border:1px solid var(--line);color:inherit;background:#ffffff0c;border-radius:8px;padding:7px 11px;cursor:pointer}
+.settings-connections p,.setup-guide-content p{color:var(--muted)}.settings-connections p:empty,#setupGuideError:empty{display:none}
+.setup-guide{box-sizing:border-box;width:min(540px,calc(100vw - 28px));max-height:calc(100dvh - 36px);padding:24px;color:var(--text);background:#181724;border:1px solid #4b435d;border-radius:16px;box-shadow:0 16px 60px #0008}
+.setup-guide::backdrop{background:#090812b8}.setup-guide h1{font-size:23px;margin:10px 0 6px}.setup-guide header>p{color:var(--muted);margin:0 0 10px}.setup-guide .setup-guide-progress{color:var(--accent);font-weight:650}
+.setup-guide-marks{display:flex;gap:6px}.setup-guide-marks span{height:3px;flex:1;border-radius:3px;background:#ffffff20}.setup-guide-marks .reached{background:var(--accent)}
+#setupGuideContent{margin:17px 0}#setupGuideContent>div>p{color:var(--muted)}#setupGuideError{color:#ff9aa9}
+.setup-guide footer{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.setup-guide footer button:first-child{margin-right:auto}
+.setup-guide button.primary{background:var(--accent);color:#18121f;font-weight:650}.setup-guide :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:650px){.settings-grid{grid-template-columns:1fr}.settings-connections{grid-row:auto}.setup-guide{padding:17px}}
+
+.ac-select{display:inline-block;max-width:100%;vertical-align:middle}
+.design-editor .ac-select{display:block}.settings-group .ac-select{margin-left:5px}
+.ac-select-trigger{min-height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;color:var(--text);font:inherit;padding:5px 10px;background:#221e30;border:1px solid #b8a0db40;border-radius:8px;cursor:pointer}
+.ac-select-trigger::after{content:"";width:6px;height:6px;flex:none;border-right:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent);transform:rotate(45deg) translateY(-2px)}
+.ac-select-trigger:hover,.ac-select-trigger[aria-expanded=true]{background:#30253e;border-color:#b8a0db80}
+.ac-select-trigger:disabled{opacity:.45;cursor:default}
+.ac-select-menu{position:fixed;z-index:1000;overflow:auto;box-sizing:border-box;padding:4px;background:#211b2d;border:1px solid #af93d563;border-radius:10px;box-shadow:0 8px 26px #0009}
+.ac-select-option{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:7px 9px;border:0;border-radius:6px;color:var(--text);font:inherit;text-align:left;background:transparent;cursor:pointer}
+.ac-select-option:hover,.ac-select-option:focus-visible{background:#ffffff16}
+.ac-select-option[aria-selected=true]{background:#a684d52e;color:#e9d9ff}.ac-select-option[aria-selected=true]::after{content:"✓";color:var(--accent)}
+.ac-select-option:disabled{opacity:.45;cursor:default}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;display:inline-grid;place-content:center;flex:0 0 16px;width:16px;height:16px;vertical-align:middle;border:1px solid #ad95c86e;border-radius:4px;background:#221e30;cursor:pointer}
+input[type=checkbox]:checked,input[type=checkbox]:indeterminate{background:#c4a8eb;border-color:#c4a8eb}
+input[type=checkbox]:checked::before{content:"";width:7px;height:4px;border-left:2px solid #21172d;border-bottom:2px solid #21172d;transform:translateY(-1px) rotate(-45deg)}
+input[type=checkbox]:indeterminate::before{content:"";width:8px;height:2px;background:#21172d}
+input[type=checkbox]:disabled{opacity:.45;cursor:default}
+.ac-select-trigger:focus-visible,.ac-select-option:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style></head><body>
 <svg style="display:none" aria-hidden="true"><symbol id="cut" viewBox="0 0 24 24"><path d="m9 9 11 11M9 15 20 4M13 12l7-8"/><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/></symbol><symbol id="grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol><symbol id="settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="3" fill="currentColor" stroke="none"/></symbol><symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol><symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol><symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="video" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3Z"/></symbol><symbol id="refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/></symbol><symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol><symbol id="spark" viewBox="0 0 24 24"><path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4Z"/></symbol></svg>
-<aside class="rail"><div class="brand"><img class="app-logo" src="/assets/logo.png" alt="Autoclipper"><span class="brandname">autoclipper</span></div><div class="version">Twitch → Premiere</div><nav class="nav" aria-label="Navigation"><button class="active" id="navStudio" title="Studio"><svg><use href="#grid"/></svg><span>Status</span></button><button id="navHistory" title="Aktivität"><svg><use href="#clock"/></svg><span>Aktivität</span></button><button id="navCleanup" title="Speicher"><svg><use href="#settings"/></svg><span>Speicher</span></button><button id="navSetup" title="Einrichtung"><svg><use href="#settings"/></svg><span>Einrichtung</span></button></nav><div class="rail-bottom online"><i class="dot"></i><span>Made for your Mac</span></div></aside>
-<main class="main"><div class="topbar"><div class="breadcrumb">Autoclipper <span>／</span> <span>Status</span></div><div class="compact-destination" aria-label="Schnittziel"><span class="compact-spec" id="editorSpec">9:16 · 30 fps</span><span class="pr" id="editorBadge">Pr</span><span id="projectName">Noch nicht verbunden</span><select id="editorChoice" aria-label="Schnittziel"><option value="auto">Auto</option><option value="premiere">Premiere Pro</option><option value="resolve">Resolve Studio (Beta)</option><option value="capcut">CapCut</option></select><i class="dot" id="projectDot"></i></div><div class="connections"><div class="connection" id="browser"><i class="dot"></i><span class="appname">Chrome</span><span id="browserStatus">Verbinden …</span></div><div class="connection" id="premiere"><i class="dot"></i><span class="appname">Premiere</span><span id="premiereStatus">Verbinden …</span></div></div></div>
+<aside class="rail"><div class="brand"><img class="app-logo" src="/assets/logo.png" alt="Autoclipper"><span class="brandname">autoclipper</span></div><div class="version">Twitch → Premiere</div><nav class="nav" aria-label="Navigation"><button class="active" id="navStudio" title="Studio" aria-current="page"><svg><use href="#grid"/></svg><span>Studio</span></button><button id="navHistory" title="Aktivität"><svg><use href="#clock"/></svg><span>Aktivität</span></button><button id="navCleanup" title="Speicher"><svg><use href="#settings"/></svg><span>Speicher</span></button><button id="navSetup" title="Einstellungen"><svg><use href="#settings"/></svg><span>Einstellungen</span></button></nav><div class="rail-bottom online"><i class="dot"></i><span>Made for your Mac</span></div></aside>
+<main class="main"><div class="topbar"><div class="breadcrumb">Autoclipper <span>／</span> <span id="viewTitle">Studio</span></div><div class="compact-destination" aria-label="Schnittziel"><span class="compact-spec" id="editorSpec">9:16 · 30 fps</span><span class="pr" id="editorBadge">Pr</span><span id="projectName">Noch nicht verbunden</span><i class="dot" id="projectDot"></i></div><div class="connections"><div class="connection" id="browser"><i class="dot"></i><span class="appname">Chrome</span><span id="browserStatus">Verbinden …</span></div><div class="connection" id="premiere"><i class="dot"></i><span class="appname">Premiere</span><span id="premiereStatus">Verbinden …</span></div></div></div>
 
-<section class="support"><details id="setup"><summary>Einrichtung <span id="setupCount"></span></summary>
-<div class="setup-checks">
-<label class="language-picker">Sprache <select id="languageChoice" aria-label="Sprache"><option value="de">Deutsch</option><option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="es">Español</option></select></label>
-<div class="setup-step"><span id="setupChrome">Chrome</span><button id="openChromeSetup">Chrome-Erweiterungen öffnen</button></div>
-<div class="setup-step"><span id="setupStream">Twitch</span></div>
-<div class="setup-step"><span id="setupEditor">Schnittziel</span><button id="installPremierePanel">Premiere-Panel installieren</button><button id="openPremiereSetup" hidden>Premiere starten</button></div>
+
+<div id="notice" class="notice" role="alert"></div>
+<div id="cameraReview" class="panel camera-tools" hidden>
+ <p id="cameraStatus" class="micro" role="status"></p>
+ <p>Ziehe einen Rahmen um deine Facecam.</p>
+ <div class="camera-preview"><img id="cameraPreview" alt="Cam-Vorschau" draggable="false"><div id="cameraSelection" hidden></div></div>
+ <div class="actions"><button id="cameraApply" disabled>Cam-Ausschnitt übernehmen</button> <button id="cameraSkip">Ohne Cam importieren</button></div>
 </div>
-<p id="setupHint"></p><p>Clip-Gestaltung: In Premiere unter Fenster → Erweiterungen → Autoclipper.</p><button id="folder">Clips &amp; Projekte öffnen ↗</button> <button id="openSupport">Support &amp; donations ↗</button>
-</details></section>
+
+<section id="studioView" data-view>
 <div class="workspace" id="studio"><section class="panel"><div class="panel-head"><div class="panel-title"><svg><use href="#video"/></svg> Streams</div><button class="link" id="reloadChats" title="Alle Chats neu laden · Player läuft weiter">Chats neu verbinden</button><span class="count" id="tabCount">0 geöffnet</span></div><div class="sources native-stream-list" id="sources" role="group" aria-label="Eingehende Twitch-Tabs"><div class="empty">Verbinde Chrome, um deine Twitch-Tabs zu sehen.</div></div><div class="source-footer"><p class="micro">Die Auswahl steuerst du über das Autoclipper-Symbol in Chrome.</p></div></section>
 </div>
-<div class="native-capture glass"><span id="nativeSelection" class="selection-count">Streams auswählen</span><button id="nativeClip" class="primary" disabled>Clip & Import</button></div><p id="nativeClipStatus" class="native-clip-status" role="status"></p><div id="notice" class="notice" role="alert"></div><section id="history"><div class="activity-head"><h2>Verarbeitung & letzte Clips</h2><span id="activityCount">Dein kreativer Flow</span></div><div class="activity" id="jobs"><div class="empty">Keine Aktivitäten.</div></div><details class="failed" id="failed"><summary id="failedSummary">Fehlgeschlagene Aktionen</summary><div class="activity" id="failedJobs"></div></details></section>
-<section class="cleanup" id="cleanup"><div class="activity-head"><h2>Speicher</h2><span class="cleanup-total" id="storageTotal">Lade Speicherbelegung …</span></div><div class="activity"><div class="cleanup-title-row"><span>Dateien</span><button class="cleanup-link" id="selectFiles">Alle</button></div><div class="cleanup-files" id="cleanupFiles"></div><div class="cleanup-controls"><span class="cleanup-size" id="selectedSize">Keine Auswahl</span><button class="cleanup-link" id="deselectFiles">Keine</button></div><label class="cleanup-option"><input type="checkbox" id="clearHistory">Verlauf leeren<small id="historySize">Abgeschlossene Aktionen</small></label><label class="cleanup-option"><input type="checkbox" id="clearLogs">Log leeren<small id="logSize">app.log</small></label><div class="cleanup-warning" id="deleteWarning" hidden>MP4 erst nach dem Export entfernen: Premiere verwendet die Originaldatei. Nach dem Verschieben ist sie dort offline. Im Papierkorb kannst du sie bei Bedarf zurückholen.</div><button class="cleanup-submit" id="cleanupSubmit" disabled>Bereinigen</button><p class="cleanup-note">Dateien landen im Papierkorb. Laufende Importe bleiben geschützt.</p><p class="cleanup-result" id="cleanupResult" role="status" aria-live="polite"></p></div></section><label class="auto-chat-option"><input type="checkbox" id="autoChatReconnect">Chat automatisch neu verbinden</label></main>
-<script src="/i18n.js"></script><script>
+<div class="native-capture glass"><span id="nativeSelection" class="selection-count">Streams auswählen</span><button id="nativeClip" class="primary" disabled>Clip & Import</button></div><p id="nativeClipStatus" class="native-clip-status" role="status"></p>
+
+<aside id="designAction" class="panel camera-tools" hidden>
+<p>Ein Clip wartet auf seine Gestaltung.</p><button id="openPendingDesign">Gestaltung öffnen</button>
+</aside>
+</section>
+<section id="history" data-view hidden><div class="activity-head"><h2>Verarbeitung & letzte Clips</h2><span id="activityCount">Dein kreativer Flow</span></div><div class="activity" id="jobs"><div class="empty">Keine Aktivitäten.</div></div><details class="failed" id="failed"><summary id="failedSummary">Fehlgeschlagene Aktionen</summary><div class="activity" id="failedJobs"></div></details></section>
+<section class="cleanup" id="cleanup" data-view hidden><div class="activity-head"><h2>Speicher</h2><span class="cleanup-total" id="storageTotal">Lade Speicherbelegung …</span></div><div class="activity"><div class="cleanup-title-row"><span>Dateien</span><button class="cleanup-link" id="selectFiles">Alle</button></div><div class="cleanup-files" id="cleanupFiles"></div><div class="cleanup-controls"><span class="cleanup-size" id="selectedSize">Keine Auswahl</span><button class="cleanup-link" id="deselectFiles">Keine</button></div><label class="cleanup-option"><input type="checkbox" id="clearHistory">Verlauf leeren<small id="historySize">Abgeschlossene Aktionen</small></label><label class="cleanup-option"><input type="checkbox" id="clearLogs">Log leeren<small id="logSize">app.log</small></label><div class="cleanup-warning" id="deleteWarning" hidden>MP4 erst nach dem Export entfernen: Premiere verwendet die Originaldatei. Nach dem Verschieben ist sie dort offline. Im Papierkorb kannst du sie bei Bedarf zurückholen.</div><button class="cleanup-submit" id="cleanupSubmit" disabled>Bereinigen</button><p class="cleanup-note">Dateien landen im Papierkorb. Laufende Importe bleiben geschützt.</p><p class="cleanup-result" id="cleanupResult" role="status" aria-live="polite"></p></div></section>
+<section id="settingsView" data-view hidden>
+ <header class="settings-heading"><h1>Einstellungen</h1><button id="restartSetup">Einrichtung erneut öffnen</button></header>
+ <div class="settings-grid">
+  <section id="setupPreferences" class="settings-group">
+   <h2>Allgemein</h2>
+   <label class="language-picker">Sprache <select id="languageChoice" aria-label="Sprache"><option value="de">Deutsch</option><option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="es">Español</option></select></label>
+   <label>Schnittziel <select id="editorChoice" aria-label="Schnittziel"><option value="auto">Auto</option><option value="premiere">Premiere Pro</option><option value="resolve">Resolve Studio (Beta)</option><option value="capcut">CapCut</option></select></label>
+  </section>
+  <div class="settings-group settings-connections">
+   <h2>Verbindungen</h2>
+   <div id="setupBrowser"><div class="setup-step"><span id="setupChrome">Chrome</span><button id="openChromeSetup">Chrome-Erweiterungen öffnen</button></div>
+<div class="setup-step"><span id="setupStream">Twitch</span></div>
+<p id="setupBrowserHint"></p></div>
+   <div id="setupDestination"><div class="setup-step"><span id="setupEditor">Schnittziel</span><button id="installPremierePanel">Premiere-Panel installieren</button><button id="openPremiereSetup" hidden>Premiere starten</button></div><p id="setupEditorHint"></p></div>
+  </div>
+  <section class="settings-group">
+   <h2>Automatik</h2>
+   <label><input type="checkbox" id="autoCamera"> Auto Cam Detection</label>
+   <p id="cameraPreferenceStatus" class="micro" role="status"></p>
+   <label class="auto-chat-option"><input type="checkbox" id="autoChatReconnect">Chat automatisch neu verbinden</label>
+  </section>
+  <details class="design-editor panel" id="clipDesign">
+<summary>Titel &amp; automatische Assets</summary>
+<section class="design-defaults">
+<p id="designDefaultState" role="status">Keine automatische Gestaltung gespeichert.</p>
+<div class="actions design-buttons"><button type="button" id="pickAssets">Eigene Assets wählen</button><button type="button" id="saveDesign">Für alle neuen Clips speichern</button></div>
+<input type="file" id="overlayFiles" multiple hidden accept=".mov,.mp4,.png,.jpg,.jpeg">
+<ul id="designAssets"></ul>
+<p id="designHandoff" class="design-help" hidden>CapCut: Clips und Overlays aus dem geöffneten Ordner in die Timeline ziehen.</p>
+<p class="design-help">Speichert die gewählten Assets und den Titel unten für neue Timelines.</p>
+</section>
+<label class="design-hold"><input id="holdDesign" type="checkbox"> Bei neuen Clips auf Gestaltung warten</label>
+<p id="designWaiting" hidden>Der Clip wartet vor dem Import auf deine Freigabe.</p>
+<div class="design-inspector">
+ <div class="design-properties">
+  <label>Titel<textarea id="titleText" rows="2" maxlength="160" placeholder="Optionaler Titel"></textarea></label>
+  <section class="design-section">
+   <h3>Text</h3>
+   <div class="design-grid">
+    <label>Schriftart<input id="titleFont" value="Arial" maxlength="80"></label>
+    <label>Schriftvorschläge<select id="titleFontPreset"><option value="">Auswählen</option><option>Arial</option><option>Arial Black</option><option>Helvetica Neue</option><option>Montserrat</option><option>Bebas Neue</option><option>Verdana</option><option>Georgia</option></select></label>
+   </div>
+   <div class="design-style-row">
+    <label>Schriftschnitt<select id="titleWeight"><option value="700">Fett</option><option value="400">Normal</option><option value="900">Extra fett</option></select></label>
+    <div class="design-format">
+     <button type="button" id="titleItalic" aria-label="Kursiv" title="Kursiv" aria-pressed="false"><i>T</i></button>
+     <button type="button" id="titleUppercase" aria-label="Großbuchstaben" title="Großbuchstaben" aria-pressed="false">TT</button>
+    </div>
+   </div>
+   <label><span class="design-size-label">Schriftgröße <output id="titleSizeValue" for="titleSize">82</output></span><input id="titleSize" type="range" min="30" max="150" value="82"></label>
+  </section>
+  <section class="design-section">
+   <h3>Aussehen <span aria-hidden="true">·</span> <span id="titleEditor">Premiere Pro</span></h3>
+   <div class="design-grid">
+    <label>Füllung<input id="titleColor" type="color" value="#ffffff"></label>
+    <label>Konturfarbe<input id="titleStrokeColor" type="color" value="#000000"></label>
+    <label>Konturstärke<input id="titleStrokeWidth" type="range" min="0" max="20" value="6"></label>
+    <label data-title-editors="premiere resolve">Schatten<input id="titleShadow" type="range" min="0" max="30" value="0"></label>
+    <label data-title-editors="resolve">Ausrichtung<select id="titleAlign"><option value="center">Zentriert</option><option value="left">Links</option><option value="right">Rechts</option></select></label>
+    <label data-title-editors="capcut">Texthintergrund<input id="titleBackground" type="checkbox"></label>
+    <label data-title-editors="capcut">Hintergrundfarbe<input id="titleBackgroundColor" type="color" value="#171322"></label>
+   </div>
+  </section>
+  <section class="design-section">
+   <h3>Layout</h3>
+   <div class="design-grid">
+    <label>Plattform<select id="titlePlatform"><option value="tiktok">TikTok</option><option value="reels">Instagram Reels</option><option value="shorts">YouTube Shorts</option></select></label>
+    <label>Position<select id="titlePosition"><option value="top">Oben</option><option value="center">Mitte</option><option value="bottom">Unten</option></select></label>
+    <label>Dauer (Sek.)<input id="titleDuration" type="number" min="1" max="15" value="5"></label>
+   </div>
+  </section>
+ </div>
+ <figure class="design-preview"><canvas id="titlePreview" width="1080" height="1920" aria-label="Titelvorschau"></canvas><figcaption>9:16</figcaption></figure>
+</div>
+<div class="actions design-buttons"><button id="applyDesign" disabled>Für aktuellen Clip übernehmen</button><button id="skipDesign" hidden>Ohne Gestaltung importieren</button></div>
+<p id="designStatus" role="status"></p>
+</details>
+ </div>
+ <footer class="settings-footer"><button id="folder">Clips &amp; Projekte öffnen ↗</button> <button id="openSupport">Support &amp; donations ↗</button>
+</footer>
+</section>
+</main>
+<dialog id="setupGuide" class="setup-guide" aria-labelledby="setupGuideTitle">
+ <header>
+  <p id="setupGuideProgress" class="setup-guide-progress"></p>
+  <div id="setupGuideMarks" class="setup-guide-marks" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <h1 id="setupGuideTitle" tabindex="-1"></h1>
+  <p id="setupGuideDescription"></p>
+ </header>
+ <div id="setupGuideContent"></div>
+ <p id="setupGuideError" role="alert"></p>
+ <footer><button id="setupGuideSkip">Jetzt überspringen</button><button id="setupGuideBack">Zurück</button><button id="setupGuideNext" class="primary">Weiter</button></footer>
+</dialog>
+<script src="/i18n.js"></script><script src="/controls.js"></script><script src="/clip-design.js"></script><script src="/camera-review.js"></script><script src="/setup-flow.js"></script><script>
 // The same lightweight view is used by the extension and the native app.
 (()=>{
  const data=new Map();let current=null,anchor=null,delay=0,opened=false,keyboard=false;
@@ -119,7 +278,11 @@ const TOKEN='__AUTOCLIPPER_TOKEN__';const $=id=>document.getElementById(id);let 
 function icon(name,cls=''){const e=document.createElementNS('http://www.w3.org/2000/svg','svg');if(cls)e.setAttribute('class',cls);e.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+name);e.append(use);return e;}
 function el(tag,text,cls){const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e;}
 async function api(path,data){const r=await fetch('/api/'+path,{method:data?'POST':'GET',headers:{'Content-Type':'application/json','X-Autoclipper-Token':TOKEN},body:data?JSON.stringify(data):undefined});const d=await r.json();if(!r.ok)throw Error(d.error);return d;}
-async function action(path,data={}){if(pendingAction)return;pendingAction=true;try{$('notice').textContent='';await api(path,data);await refresh();}catch(e){$('notice').textContent=acMessage(e.message);}finally{pendingAction=false;}}
+function showAppError(error){
+ const target=$('setupGuide').open?$('setupGuideError'):$('notice');
+ target.textContent=acMessage(error);
+}
+async function action(path,data={}){if(pendingAction)return;pendingAction=true;try{$('notice').textContent='';await api(path,data);await refresh();}catch(e){showAppError(e.message);}finally{pendingAction=false;}}
 function channel(t){try{const u=new URL(t.url);if(u.hostname==='clips.twitch.tv')return acText('Clip-Vorschau');const name=u.pathname.split('/').filter(Boolean)[0];if(name&&!['directory','videos','downloads','settings'].includes(name))return name;}catch{}return (t.title||'Twitch').replace(/^\(\d+\)\s*/,'').replace(/\s*- Twitch.*$/,'');}
 function isDirectMP4(p){try{return p&&/\.mp4$/i.test(new URL(p.src).pathname);}catch{return false;}}
 function playbackTime(t){if(!Number.isFinite(t))return '—';return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');}
@@ -164,13 +327,18 @@ function progressRing(job){
  const path=document.createElementNS(ns,'path');path.setAttribute('d',paths[phase[0]]);symbol.append(path);wrap.append(symbol);return wrap;
 }
 let activityDrawer;
-function initActivities(container,host){
- activityDrawer=document.createElement('details');activityDrawer.className='activity-drawer';const summary=document.createElement('summary');summary.setAttribute('aria-label',acText('Aktivitäten öffnen'));summary.title=acText('Aktivitäten');summary.append(progressRing());const label=document.createElement('span');label.className='activity-short';label.textContent=acText('Aktivitäten');summary.append(label);activityDrawer.append(summary);const panel=document.createElement('div');panel.className='activity-popover glass';panel.append(container);activityDrawer.append(panel);host.append(activityDrawer);
- document.addEventListener('pointerdown',e=>{if(activityDrawer.open&&!activityDrawer.contains(e.target))activityDrawer.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape'){activityDrawer.open=false;summary.focus();}});
+function initActivities(host){
+ activityDrawer=document.createElement('button');
+ activityDrawer.type='button';
+ activityDrawer.className='activity-shortcut';
+ activityDrawer.onclick=()=>selectView('navHistory');
+ activityDrawer.setAttribute('aria-label',acText('Aktivitäten öffnen'));
+ activityDrawer.append(progressRing());
+ host.append(activityDrawer);
 }
 function updateActivities(jobs){
  if(!activityDrawer)return;const active=jobs.filter(j=>j.queueEntry&&!['done','error'].includes(j.status));const latest=active.find(j=>!['queued','capture_pending','download_wait'].includes(j.status))||active[0]||[...jobs].reverse().find(j=>['clip','batch'].includes(j.kind));
- const summary=activityDrawer.querySelector('summary');summary.replaceChildren(progressRing(latest));const text=document.createElement('span');text.className='activity-short';text.textContent=active.length?active.length+' · '+(activityPhases[latest?.status]?.[1]||acText('Aktiv')):latest?activityPhases[latest.status]?.[1]||acText('Aktivitäten'):acText('Aktivitäten');summary.append(text);
+ const summary=activityDrawer;summary.replaceChildren(progressRing(latest));const text=document.createElement('span');text.className='activity-short';text.textContent=active.length?active.length+' · '+(activityPhases[latest?.status]?.[1]||acText('Aktiv')):latest?activityPhases[latest.status]?.[1]||acText('Aktivitäten'):acText('Aktivitäten');summary.append(text);
  summary.setAttribute('aria-label',text.textContent+acText(' · Aktivitäten öffnen'));summary.title=acMessage(latest?.message)||acText('Aktivitäten');
 }
 
@@ -213,9 +381,46 @@ function renderSources(){
  if(!tabsNow.length&&!area.querySelector('.empty'))area.append(el('div',acText('Twitch-Stream in Chrome öffnen.'),'empty'));
 }
 
-function friendly(j){if(j.syncWarning)return acMessage(j.syncWarning);if(j.status==='done'&&j.syncResult?.verified)return acText('Audio synchronisiert');if(j.kind==='rename')return j.status==='done'?acText('Sequenznamen aktualisiert'):acMessage(j.message);if(j.mediaDeleted)return acText('Quelldatei in den Papierkorb verschoben');if(j.status==='done'&&['resolve','capcut'].includes(j.editor))return acMessage(j.message);if(j.status==='done')return ['project','ensure'].includes(j.kind)?acText('Projekt vorbereitet'):acText('In Premiere importiert');if(j.message?.startsWith('Video-Diagnose:'))return acText('MP4-Quelle wurde beim Test noch nicht erkannt.');return (acMessage(j.message)||acText('Wartet …')).replace(/ \(Zeile \d+\)/g,'');}
+function friendly(j){if(j.cameraWarning&&!j.cameraPath)return acMessage(j.cameraWarning);if(j.syncWarning)return acMessage(j.syncWarning);if(j.status==='done'&&j.syncResult?.verified)return acText('Audio synchronisiert');if(j.kind==='rename')return j.status==='done'?acText('Sequenznamen aktualisiert'):acMessage(j.message);if(j.mediaDeleted)return acText('Quelldatei in den Papierkorb verschoben');if(j.status==='done'&&['resolve','capcut'].includes(j.editor))return acMessage(j.message);if(j.status==='done')return ['project','ensure'].includes(j.kind)?acText('Projekt vorbereitet'):acText('In Premiere importiert');if(j.message?.startsWith('Video-Diagnose:'))return acText('MP4-Quelle wurde beim Test noch nicht erkannt.');return (acMessage(j.message)||acText('Wartet …')).replace(/ \(Zeile \d+\)/g,'');}
 function renderJobs(jobs,container){const list=$(container);list.replaceChildren();for(const j of jobs){const row=el('div','','job '+j.status),stamp=el('span','','job-icon');stamp.append(icon(j.status==='done'?'check':j.status==='error'?'close':'refresh',!['done','error'].includes(j.status)?'busy-icon':''));const body=el('div','','job-body');const title=j.kind==='rename'?acText('Sequenznamen'):['project','ensure'].includes(j.kind)?(j.path?.split('/').pop()||acText('Neues Projekt')):(j.channel?channel({title:j.channel}):'Twitch-Clip');body.append(el('div',title,'job-title'),el('div',friendly(j),'job-meta'));row.append(progressRing(j),body,el('span',new Date(j.created*1000).toLocaleTimeString(acI18n.locale,{hour:'2-digit',minute:'2-digit'}),'job-time'));if(j.hasMedia&&['done','error'].includes(j.status)){const file=el('button',acText('Datei anzeigen'),'job-action');file.onclick=()=>action('reveal-clip',{id:j.id});row.append(file);}if(j.retryable){const b=el('button','','job-action');b.append(icon('refresh'));b.textContent=acText('Import erneut versuchen');b.title=acText('MP4 erneut importieren');b.setAttribute('aria-label',acText('MP4 erneut importieren'));b.onclick=()=>action('retry-import',{id:j.id});row.append(b);}if(!['done','error'].includes(j.status)){const b=el('button',j.cancelRequested?acText('Abbruch angefordert'):acText('Abbrechen'),'job-action');b.disabled=!!j.cancelRequested;b.onclick=()=>action('cancel',{id:j.id});row.append(b);}list.append(row);}if(!jobs.length)list.append(el('div',acText('Keine Aktivitäten.'),'empty'));}
-let initialSetup=true;
+async function uploadOverlay(file) {
+ const response=await fetch('/api/design-asset',{
+  method:'POST',
+  headers:{'X-Autoclipper-Token':TOKEN,'X-Asset-Name':encodeURIComponent(file.name)},
+  body:file
+ });
+ const result=await response.json();
+ if(!response.ok)throw Error(result.error);
+ return result.path;
+}
+function chooseOverlays() {
+ const input=$('overlayFiles');
+ input.value='';
+ return new Promise((resolve,reject)=>{
+  input.oncancel=()=>resolve([]);
+  input.onchange=async()=>{
+   try {
+    const files=[...input.files];
+    if(files.length>6)throw Error(acText('Wähle bis zu sechs Dateien aus.'));
+    const paths=[];
+    for(const file of files)paths.push(await uploadOverlay(file));
+    resolve(paths);
+   }catch(error){reject(error);}
+  };
+  input.click();
+ });
+}
+async function loadAssetPreview(path) {
+ const response = await fetch('/api/design-preview?'+new URLSearchParams({path}), {
+  headers:{'X-Autoclipper-Token':TOKEN}
+ });
+ if (!response.ok) throw Error('Asset preview unavailable.');
+ return response.blob();
+}
+const renderClipDesign=window.initClipDesign(api,chooseOverlays,false,loadAssetPreview);
+const renderCamera=window.initCameraReview(api,TOKEN);
+
+const renderSetupGuide=window.initSetupFlow(api);
 function renderSetup(s){
  const chrome=!!s.browser.name, stream=!!s.browser.tabs?.length;
  const premiere=s.editor==='premiere'||!s.editor;
@@ -230,36 +435,57 @@ function renderSetup(s){
  for(const [id,ok,label] of steps){
   $(id).textContent=(ok?'✓  ':'○  ')+label;$(id).className=ok?'setup-ready':'setup-wait';
  }
- $('setupCount').textContent=premiere?'· '+[chrome,stream,ready].filter(Boolean).length+'/3':'';
  $('openChromeSetup').hidden=chrome;
  $('installPremierePanel').hidden=!premiere||ready||s.panelInstalled;
  $('openPremiereSetup').hidden=!premiere||ready||!s.panelInstalled||running.includes('premiere');
- $('setupHint').textContent=!chrome?acText('In Chrome den Entwicklermodus aktivieren und den Ordner „Chrome-Erweiterung“ entpackt laden.'):premiere&&!ready&&s.panelInstalled?acText('In Premiere: Fenster → Erweiterungen → Autoclipper. Bei Bedarf Premiere neu starten.'):'';
- if(initialSetup){
-  if(!chrome||!stream||premiere&&!ready)$('setup').open=true;
-  initialSetup=false;
- }
+ $('setupBrowserHint').textContent=!chrome?acText('In Chrome den Entwicklermodus aktivieren und den Ordner „Chrome-Erweiterung“ entpackt laden.'):'';
+ $('setupEditorHint').textContent=premiere&&!ready&&s.panelInstalled?acText('In Premiere: Fenster → Erweiterungen → Autoclipper. Bei Bedarf Premiere neu starten.'):'';
+ renderSetupGuide(s.preferences);
 }
-acI18n.bind(api,error=>$('notice').textContent=error);
+acI18n.bind(api,error=>showAppError(error));
 $('editorChoice').onchange=()=>action('editor',{editor:$('editorChoice').value});
 $('openPremiereSetup').onclick=()=>action('open-premiere');
 $('openChromeSetup').onclick=()=>action('chrome-setup');
 $('installPremierePanel').onclick=()=>action('install-panel');
-async function refresh(){if(inflight)return;inflight=true;try{const s=await api('state');if(acI18n.sync(s.preferences))return;renderSetup(s);renderChatReload(s);renderChatPreference(s);if(s.storage)renderStorage(s.storage);tabsNow=s.browser.tabs||[];const browser=!!s.browser.name,pr=!!s.premiere.connected;$('browser').classList.toggle('online',browser);$('premiere').classList.toggle('online',pr);$('browserStatus').textContent=browser?acText('Verbunden'):'Offline';$('premiereStatus').textContent=pr?acText('Verbunden'):'Offline';$('projectName').textContent=pr?(s.premiere.project||acText('Kein Projekt geöffnet')):acText('Panel nicht verbunden');const alternate=s.editor==='resolve'||s.editor==='capcut';$('editorBadge').textContent=s.editor==='resolve'?'DR':s.editor==='capcut'?'CC':'Pr';$('premiere').hidden=alternate;$('editorSpec').hidden=s.editor==='capcut';if(alternate)$('projectName').textContent=s.editor==='resolve'?'DaVinci Resolve':acText('CapCut · Dateien');$('projectName').title=$('projectName').textContent;$('projectDot').style.background=pr?'#9fe3be':'#b29365';selectedTabs=new Set((s.selection||[]).filter(id=>tabsNow.some(t=>t.id===id)));nativeWorking=!!s.browser.capturing||s.jobs.some(j=>j.queueEntry&&['queued','capture_pending','clipping'].includes(j.status));renderSources();window.acMomentView?.update(tabsNow);nativeButton();updateActivities(s.jobs);const running=s.jobs.find(j=>['clip','batch'].includes(j.kind)&&!['done','error'].includes(j.status));window.currentCapture=running;const visible=[...s.jobs].reverse().filter(j=>j.status!=='error').slice(0,30),failed=[...s.jobs].reverse().filter(j=>j.status==='error');const key=JSON.stringify(visible);if(key!==lastJobs){lastJobs=key;renderJobs(visible,'jobs');}const fk=JSON.stringify(failed);if(fk!==lastFailed){lastFailed=fk;renderJobs(failed,'failedJobs');$('failed').hidden=!failed.length;$('failedSummary').textContent=failed.length+acText(' Fehler');}$('activityCount').textContent=s.jobs.filter(j=>j.status==='done'&&['clip','batch'].includes(j.kind)).length+acText(' Importe abgeschlossen');}catch(e){$('notice').textContent=acText('Die Verbindung zur App wurde unterbrochen. Bitte Autoclipper erneut öffnen.');}finally{inflight=false;}}
+async function refresh(){if(inflight)return;inflight=true;try{const s=await api('state');if(acI18n.sync(s.preferences))return;renderCamera(s);renderClipDesign(s);$('designAction').hidden=!s.jobs.some(j=>j.awaitingDesign&&!['done','error'].includes(j.status));renderSetup(s);renderChatReload(s);renderChatPreference(s);if(s.storage)renderStorage(s.storage);tabsNow=s.browser.tabs||[];const browser=!!s.browser.name,pr=!!s.premiere.connected;$('browser').classList.toggle('online',browser);$('premiere').classList.toggle('online',pr);$('browserStatus').textContent=browser?acText('Verbunden'):'Offline';$('premiereStatus').textContent=pr?acText('Verbunden'):'Offline';$('projectName').textContent=pr?(s.premiere.project||acText('Kein Projekt geöffnet')):acText('Panel nicht verbunden');const alternate=s.editor==='resolve'||s.editor==='capcut';$('editorBadge').textContent=s.editor==='resolve'?'DR':s.editor==='capcut'?'CC':'Pr';$('premiere').hidden=alternate;$('editorSpec').hidden=s.editor==='capcut';if(alternate)$('projectName').textContent=s.editor==='resolve'?'DaVinci Resolve':acText('CapCut · Dateien');$('projectName').title=$('projectName').textContent;$('projectDot').style.background=pr?'#9fe3be':'#b29365';selectedTabs=new Set((s.selection||[]).filter(id=>tabsNow.some(t=>t.id===id)));nativeWorking=!!s.browser.capturing||s.jobs.some(j=>j.queueEntry&&['queued','capture_pending','clipping'].includes(j.status));renderSources();window.acMomentView?.update(tabsNow);nativeButton();updateActivities(s.jobs);const running=s.jobs.find(j=>['clip','batch'].includes(j.kind)&&!['done','error'].includes(j.status));window.currentCapture=running;const visible=[...s.jobs].reverse().filter(j=>j.status!=='error').slice(0,30),failed=[...s.jobs].reverse().filter(j=>j.status==='error');const key=JSON.stringify(visible);if(key!==lastJobs){lastJobs=key;renderJobs(visible,'jobs');}const fk=JSON.stringify(failed);if(fk!==lastFailed){lastFailed=fk;renderJobs(failed,'failedJobs');$('failed').hidden=!failed.length;$('failedSummary').textContent=failed.length+acText(' Fehler');}$('activityCount').textContent=s.jobs.filter(j=>j.status==='done'&&['clip','batch'].includes(j.kind)).length+acText(' Importe abgeschlossen');}catch(e){$('notice').textContent=acText('Die Verbindung zur App wurde unterbrochen. Bitte Autoclipper erneut öffnen.');}finally{inflight=false;}}
 $('openSupport').onclick=()=>action('open-support');
-$('folder').onclick=()=>action('open-folder');function nav(id,target){for(const b of document.querySelectorAll('.nav button'))b.classList.toggle('active',b.id===id);$(target).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});}$('navStudio').onclick=()=>{nav('navStudio','studio');window.scrollTo({top:0,behavior:'smooth'});};$('navHistory').onclick=()=>{activityDrawer.open=!activityDrawer.open;};$('navSetup').onclick=()=>{$('setup').open=true;nav('navSetup','setup');};
+$('folder').onclick=()=>action('open-folder');
+const appViews={
+ navStudio:['studioView','Studio'],
+ navHistory:['history','Aktivität'],
+ navCleanup:['cleanup','Speicher'],
+ navSetup:['settingsView','Einstellungen']
+};
+function selectView(id){
+ const [target,title]=appViews[id];
+ for(const [button,[view]] of Object.entries(appViews)){
+  const selected=button===id;
+  $(view).hidden=view!==target;
+  $(button).classList.toggle('active',selected);
+  if(selected)$(button).setAttribute('aria-current','page');
+  else $(button).removeAttribute('aria-current');
+ }
+ $('viewTitle').textContent=acText(title);
+ window.scrollTo(0,0);
+}
+for(const id of Object.keys(appViews))$(id).onclick=()=>selectView(id);
+$('openPendingDesign').onclick=()=>{
+ selectView('navSetup');
+ $('clipDesign').open=true;
+ $('clipDesign').scrollIntoView({block:'start'});
+};
 function bytes(n){return n>=1073741824?(n/1073741824).toLocaleString(acI18n.locale,{maximumFractionDigits:2})+' GB':n>=1048576?(n/1048576).toLocaleString(acI18n.locale,{maximumFractionDigits:1})+' MB':(n/1024).toLocaleString(acI18n.locale,{maximumFractionDigits:1})+' KB';}
 function cleanupSelection(){const files=storageNow.files.filter(f=>selectedFiles.has(f.name)&&!f.busy);$('selectedSize').textContent=files.length?files.length+acText(' ausgewählt · ')+bytes(files.reduce((sum,f)=>sum+f.size,0)):acText('Keine Auswahl');$('deleteWarning').hidden=!files.length;$('cleanupSubmit').disabled=cleaning||(!files.length&&!$('clearHistory').checked&&!$('clearLogs').checked);$('cleanupSubmit').textContent=cleaning?acText('Wird bereinigt …'):files.length?files.length+' MP4'+(files.length===1?'':'s')+acText(' in Papierkorb')+($('clearHistory').checked||$('clearLogs').checked?acText(' + Logs leeren'):''):acText('Leeren');}
 function renderStorage(data){pruneThumbnails(data.files);storageNow=data;const valid=new Set(data.files.filter(f=>!f.busy).map(f=>f.name));selectedFiles=new Set([...selectedFiles].filter(n=>valid.has(n)));$('storageTotal').textContent=data.files.length+' MP4'+(data.files.length===1?'':'s')+' · '+bytes(data.totalBytes);$('logSize').textContent='app.log · '+bytes(data.logBytes);$('historySize').textContent=data.historyCount+acText(' abgeschlossene Aktionen');const key=JSON.stringify(data.files);if(key!==lastStorage){lastStorage=key;const list=$('cleanupFiles');list.replaceChildren();for(const f of data.files){const row=el('label','','cleanup-file'),box=document.createElement('input');box.type='checkbox';box.checked=selectedFiles.has(f.name);box.disabled=f.busy||cleaning;box.setAttribute('aria-label',f.name+acText(' auswählen'));box.onchange=()=>{if(box.checked)selectedFiles.add(f.name);else selectedFiles.delete(f.name);cleanupSelection();};const name=el('span',f.name,'cleanup-file-name');name.title=f.name;row.append(box,thumbnailSlot(f),name,el('span',f.busy?acText('Import läuft'):bytes(f.size),'cleanup-size'));list.append(row);}if(!data.files.length)list.append(el('div',acText('Keine Dateien.'),'empty'));}cleanupSelection();}
 $('selectFiles').onclick=()=>{selectedFiles=new Set(storageNow.files.filter(f=>!f.busy).map(f=>f.name));lastStorage='';renderStorage(storageNow);};$('deselectFiles').onclick=()=>{selectedFiles.clear();lastStorage='';renderStorage(storageNow);};$('clearHistory').onchange=cleanupSelection;$('clearLogs').onchange=cleanupSelection;
 $('cleanupSubmit').onclick=async()=>{if(cleaning)return;const data={files:[...selectedFiles],history:$('clearHistory').checked,logs:$('clearLogs').checked};if(!data.files.length&&!data.history&&!data.logs)return;cleaning=true;cleanupSelection();$('cleanupResult').textContent='';try{const result=await api('cleanup',data);for(const name of result.removed)selectedFiles.delete(name);if(result.historyCleared||data.history)$('clearHistory').checked=false;if(result.logsCleared)$('clearLogs').checked=false;const messages=[];if(result.removed.length)messages.push(result.removed.length+' MP4'+(result.removed.length===1?'':'s')+acText(' in den Papierkorb verschoben (')+bytes(result.bytes)+').');if(data.history)messages.push(result.historyCleared+acText(' Verlaufseinträge entfernt.'));if(result.logsCleared)messages.push(acText('Technisches Log geleert.'));if(result.errors.length)messages.push(...result.errors.map(acMessage));$('cleanupResult').textContent=messages.join(' ');await refresh();}catch(e){$('cleanupResult').textContent=acMessage(e.message);}finally{cleaning=false;lastStorage='';renderStorage(storageNow);}};
-$('navCleanup').onclick=()=>nav('navCleanup','cleanup');
+
 
 
 let nativeLaunching=false,nativeWorking=false;
 function nativeButton(){const blocked=tabsNow.some(t=>selectedTabs.has(t.id)&&['ad','restricted','login','offline','draft'].includes(t.availability?.state));$('nativeClip').disabled=nativeLaunching||nativeWorking||!selectedTabs.size||blocked;$('nativeClip').textContent=nativeLaunching||nativeWorking?acText('Clippen …'):acText('Clip & Import');$('nativeSelection').textContent=selectedTabs.size?selectedTabs.size+acText(' ausgewählt'):acText('Streams auswählen');}
 $('nativeClip').onclick=async()=>{if(nativeLaunching||nativeWorking)return;nativeLaunching=true;nativeButton();$('nativeClipStatus').textContent='';try{await api('clip-batch',{tabIds:[...selectedTabs],requestedAt:Date.now()});await refresh();}catch(e){$('nativeClipStatus').textContent=acMessage(e.message);}finally{nativeLaunching=false;nativeButton();}};
-initActivities($('history'),document.querySelector('.connections'));
+initActivities(document.querySelector('.connections'));
 
 
 let chatReloadPending=false;

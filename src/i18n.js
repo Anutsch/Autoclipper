@@ -174,6 +174,12 @@ Download läuft|Downloading|Descargando
 Premiere importiert|Premiere is importing|Premiere está importando
 Wird beendet|Stopping|Deteniendo
 Verwaltung|Management|Gestión
+Titel & automatische Assets|Title & automatic overlays|Título y superposiciones automáticas
+Keine automatische Gestaltung gespeichert.|No automatic design saved.|No hay un diseño automático guardado.
+Automatische Gestaltung aktiv.|Automatic design is active.|El diseño automático está activo.
+Automatische Gestaltung gespeichert.|Automatic design saved.|Diseño automático guardado.
+Für alle neuen Clips speichern|Save for all new clips|Guardar para todos los clips nuevos
+Speichert die gewählten Assets und den Titel unten für neue Timelines.|Saves the selected overlays and the title below for new timelines.|Guarda las superposiciones elegidas y el título de abajo para nuevas líneas de tiempo.
 Clip-Gestaltung|Clip design|Diseño del clip
 Clip-Gestaltung: In Premiere unter Fenster → Erweiterungen → Autoclipper.|Clip design: In Premiere, open Window → Extensions → Autoclipper.|Diseño del clip: En Premiere, abre Ventana → Extensiones → Autoclipper.
 Bei neuen Clips auf Gestaltung warten|Wait for design on new clips|Esperar al diseño en clips nuevos
@@ -185,7 +191,24 @@ Position|Position|Posición
 Oben|Top|Arriba
 Mitte|Centre|Centro|Center
 Unten|Bottom|Abajo
+Aussehen|Appearance|Apariencia
+Schriftgröße|Font size|Tamaño de fuente
+Kursiv|Italic|Cursiva
+Großbuchstaben|Uppercase|Mayúsculas
+Füllung|Fill|Relleno
+Konturfarbe|Outline colour|Color de contorno|Outline color
+Konturstärke|Outline width|Grosor del contorno
+Schatten|Shadow|Sombra
+Ausrichtung|Alignment|Alineación
+Zentriert|Centred|Centrado|Centered
+Links|Left|Izquierda
+Rechts|Right|Derecha
+Texthintergrund|Text background|Fondo de texto
+Hintergrundfarbe|Background colour|Color de fondo|Background color
+Layout|Layout|Diseño
 Schriftart|Font|Tipografía
+Schriftvorschläge|Font suggestions|Fuentes sugeridas
+Auswählen|Choose|Elegir
 Schriftschnitt|Font weight|Grosor de fuente
 Fett|Bold|Negrita
 Normal|Regular|Normal
@@ -202,6 +225,33 @@ Als Standard speichern|Save as default|Guardar como predeterminado
 Gestaltung freigegeben.|Design approved.|Diseño aprobado.
 Standard gespeichert.|Default saved.|Configuración guardada.
 Unterstützt: MOV, MP4, PNG und JPG.|Supported formats: MOV, MP4, PNG and JPG.|Formatos compatibles: MOV, MP4, PNG y JPG.
+CapCut: Clips und Overlays aus dem geöffneten Ordner in die Timeline ziehen.|CapCut: drag clips and overlays from the opened folder into the timeline.|CapCut: arrastra los clips y las superposiciones de la carpeta abierta a la línea de tiempo.
+Wähle bis zu sechs Dateien aus.|Choose up to six files.|Elige hasta seis archivos.
+Ziehe einen Rahmen um deine Facecam.|Draw a box around your facecam.|Dibuja un recuadro alrededor de tu cámara.
+Cam-Vorschau|Camera preview|Vista previa de la cámara
+Keine Cam-Vorschau verfügbar.|Camera preview unavailable.|Vista previa de la cámara no disponible.
+Cam-Ausschnitt übernehmen|Use camera crop|Usar recorte de cámara
+Ohne Cam importieren|Import without camera|Importar sin cámara
+Einstellungen|Settings|Configuración
+Allgemein|General|General
+Verbindungen|Connections|Conexiones
+Automatik|Automation|Automatización
+Einrichtung erneut öffnen|Reopen setup guide|Volver a abrir el asistente
+Sprache und Schnittziel|Language and editing destination|Idioma y editor de destino
+Wähle deine Sprache und das Schnittprogramm für neue Clips.|Choose your language and the editor for new clips.|Elige el idioma y el editor para los clips nuevos.
+Chrome verbinden|Connect Chrome|Conectar Chrome
+Lade die Autoclipper-Erweiterung in Chrome und öffne einen Twitch-Livestream.|Load the Autoclipper extension in Chrome and open a Twitch live stream.|Carga la extensión de Autoclipper en Chrome y abre un directo de Twitch.
+Schnittprogramm vorbereiten|Prepare your editor|Preparar el editor
+Prüfe die Verbindung zu deinem gewählten Schnittprogramm.|Check the connection to your selected editor.|Comprueba la conexión con el editor seleccionado.
+Assets und Titel|Overlays and title|Superposiciones y título
+Wähle optional Elemente, die in neuen Clips erscheinen sollen.|Optionally select items to include in new clips.|Selecciona los elementos opcionales para los clips nuevos.
+Schritt|Step|Paso
+Weiter|Next|Siguiente
+Zurück|Back|Atrás
+Einrichtung abschließen|Finish setup|Finalizar la configuración
+Jetzt überspringen|Skip for now|Omitir por ahora
+Ein Clip wartet auf seine Gestaltung.|A clip is waiting for its design.|Un clip está esperando su diseño.
+Gestaltung öffnen|Open clip design|Abrir diseño del clip
 `;
  const messages = `
 Werbung läuft|Ad playing|Anuncio en reproducción
@@ -355,7 +405,12 @@ Keine aktive Sequenz für den Titel.|No active sequence for the title.|No hay un
 Audio-Abgleich fehlgeschlagen|Audio alignment failed|Error al alinear el audio
 Es konnte keine zuverlässige Audio-Übereinstimmung gefunden werden.|No reliable audio match could be found.|No se encontró una coincidencia de audio fiable.
  Ansicht(en) ohne sicheren Audio-Abgleich; auf separaten Spuren bei 0 s. Bitte manuell synchronisieren.| views could not be aligned reliably and start at 0 s on separate tracks. Align them manually.| perspectivas sin sincronización fiable. Empiezan en 0 s en pistas separadas. Alinéalas manualmente.
-Wartet auf Gestaltung im Premiere-Panel.|Waiting for design in the Premiere panel.|Esperando el diseño en el panel de Premiere.
+Wartet auf Gestaltung in Autoclipper.|Waiting for design in Autoclipper.|Esperando el diseño en Autoclipper.
+CapCut-Ordner geöffnet · Clips und Overlays in die Timeline ziehen.|CapCut folder opened · drag clips and overlays into the timeline.|Carpeta de CapCut abierta · arrastra los clips y las superposiciones a la línea de tiempo.
+Facecam wird gesucht …|Finding facecam …|Buscando la cámara …
+Facecam wird vorbereitet …|Preparing facecam …|Preparando la cámara …
+Facecam-Ausschnitt in Autoclipper prüfen.|Review the facecam crop in Autoclipper.|Revisa el recorte de la cámara en Autoclipper.
+Facecam konnte nicht automatisch erstellt werden.|The facecam could not be prepared automatically.|No se pudo preparar la cámara automáticamente.
  (Zeile | (line | (línea 
 `;
  const catalog = new Map((rows+messages).split('\n').filter(Boolean).map(row => {

@@ -7,9 +7,15 @@
 .design-editor input[type=color]{height:28px}.design-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
 #titlePreview{display:block;width:96px;height:171px;margin:8px auto;border:1px solid #ffffff25;border-radius:6px;background:#141421}
 #designAssets{margin:6px 0;padding:0;list-style:none}#designAssets li{display:flex;justify-content:space-between;align-items:center;gap:4px}#designAssets span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.design-buttons{flex-wrap:wrap}.design-editor [hidden]{display:none!important}
+.design-defaults{margin:9px 0 12px;padding:8px;background:#6eb5ff10;border-radius:6px}.design-defaults p{margin:0 0 6px}.design-help{color:var(--muted)}#saveDesign{border-color:#6eb5ff99}.design-buttons{flex-wrap:wrap}.design-editor [hidden]{display:none!important}
 </style><header><div class="brand"><img class="app-logo" src="logo.png" alt="Autoclipper"><div><h1>Autoclipper</h1></div></div><span id="connection" class="badge">Verbinde …</span></header><section class="target"><div class="row"><span class="label">Projekt</span><span class="value" id="project">Noch nicht verbunden</span></div><div class="row"><span class="label">Sequenz</span><span class="value" id="sequence">Noch keine Sequenz</span></div><p class="format" id="format">1080 × 1920 · 30 fps</p><div class="actions"><button id="newProject">Neues Projekt</button><button id="jump" disabled>Sequenz öffnen ↗</button></div></section><details class="design-editor" open>
-<summary>Clip-Gestaltung</summary>
+<summary>Titel &amp; automatische Assets</summary>
+<section class="design-defaults">
+<p id="designDefaultState" role="status">Keine automatische Gestaltung gespeichert.</p>
+<div class="actions design-buttons"><button type="button" id="pickAssets">Eigene Assets wählen</button><button type="button" id="saveDesign">Für alle neuen Clips speichern</button></div>
+<ul id="designAssets"></ul>
+<p class="design-help">Speichert die gewählten Assets und den Titel unten für neue Timelines.</p>
+</section>
 <label class="design-hold"><input id="holdDesign" type="checkbox"> Bei neuen Clips auf Gestaltung warten</label>
 <p id="designWaiting" hidden>Der Clip wartet vor dem Import auf deine Freigabe.</p>
 <label>Titel<textarea id="titleText" rows="2" maxlength="160" placeholder="Optionaler Titel"></textarea></label>
@@ -24,9 +30,7 @@
 <label>Dauer (Sek.)<input id="titleDuration" type="number" min="1" max="15" value="5"></label>
 </div>
 <canvas id="titlePreview" width="1080" height="1920" aria-label="Titelvorschau"></canvas>
-<div class="actions"><button type="button" id="pickAssets">Eigene Assets wählen</button></div>
-<ul id="designAssets"></ul>
-<div class="actions design-buttons"><button id="applyDesign" disabled>Für aktuellen Clip übernehmen</button><button id="skipDesign" hidden>Ohne Gestaltung importieren</button><button id="saveDesign">Als Standard speichern</button></div>
+<div class="actions design-buttons"><button id="applyDesign" disabled>Für aktuellen Clip übernehmen</button><button id="skipDesign" hidden>Ohne Gestaltung importieren</button></div>
 <p id="designStatus" role="status"></p>
 </details>
 <h2>CLIPS</h2><div id="jobs" class="empty">Keine Clips.</div><div id="status" role="status" aria-live="polite">Verbinden …</div><div class="actions"><button id="retry" hidden>Erneut importieren</button></div><label class="language-picker">Sprache <select id="languageChoice" aria-label="Sprache"><option value="de">Deutsch</option><option value="en-GB">English (UK)</option><option value="en-US">English (US)</option><option value="es">Español</option></select></label><script src="i18n.js"></script><script src="clip-design.js"></script><script src="panel.js"></script></html>

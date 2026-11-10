@@ -40,6 +40,7 @@ def main(resources, root):
             (target / original.relative_to(source)).write_text(content, encoding='utf-8')
     for surface in ('Chrome-Erweiterung', 'Premiere-Panel'):
         shutil.copy2(root / 'src/i18n.js', root / surface / 'i18n.js')
+    shutil.copy2(root / 'src/clip-design.js', root / 'Premiere-Panel/clip-design.js')
     sys.path.insert(0, str(root / 'src'))
     runpy.run_path(str(root / 'src/server.py'), run_name='__main__')
 

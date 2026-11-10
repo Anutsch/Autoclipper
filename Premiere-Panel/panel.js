@@ -10,7 +10,7 @@
  function api(path,data){return fetch('http://127.0.0.1:18743/api/'+path,{method:data?'POST':'GET',headers:{'Content-Type':'application/json','X-Autoclipper-Token':'__AUTOCLIPPER_TOKEN__'},body:data?JSON.stringify(data):undefined}).then(async function(r){var d=await r.json();if(!r.ok)throw Error(d.error||acText('Verbindung fehlgeschlagen'));return d;});}
  acI18n.bind(api,error=>$('status').textContent=error);
  function script(code){return new Promise(function(resolve,reject){window.__adobe_cep__.evalScript(code,function(s){if(s==='EvalScript error.')reject(Error(acText('Premiere-Skript konnte nicht ausgeführt werden.')));else resolve(s);});});}
- var renderDesign=window.initClipDesign(api,async()=>JSON.parse(await script(bootstrap+'AC.pickDesignAssets()')));
+ var renderDesign=window.initClipDesign(api,async()=>JSON.parse(await script(bootstrap+'AC.pickDesignAssets()')),true);
  function render(state,info){
   renderDesign(state);
   $('project').textContent=info.project||acText('Kein Projekt geöffnet');$('project').title=info.projectPath||'';$('sequence').textContent=info.sequence||'—';
@@ -33,7 +33,10 @@
   var r=await api('premiere',currentInfo);$('connection').textContent=acText('Verbunden');
   if(r.job){var j=r.job;$('status').textContent=acMessage(j.message);
    if(j.keepPanel){localStorage.setItem('restorePanelUntil',String(Date.now()+20000));}
-   var design=JSON.stringify(j.design||{});
+   var design=JSON.stringify(Object.assign({},j.design,{
+    cameraPath:j.cameraPath,
+    cameraOffset:j.sources?.[0]?.syncOffset||0
+   }));
    var code=bootstrap+(j.kind==='batch'?'AC.executeBatch('+JSON.stringify(j.id)+','+JSON.stringify(j.sources)+','+JSON.stringify(j.targetProject||'')+','+design+')':'AC.execute('+JSON.stringify(j.id)+','+JSON.stringify(j.kind)+','+JSON.stringify(j.path)+','+design+')');
    var result=JSON.parse(await script(code));if(j.keepPanel){restoreAfterProject();localStorage.removeItem('restorePanelUntil');}lastResult={id:j.id,ok:result.ok,project:result.project,error:result.error,sequenceId:result.sequenceId};await api('premiere-result',lastResult);lastResult=null;
    currentInfo=JSON.parse(await script('AC.panelState()'));

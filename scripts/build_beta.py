@@ -52,6 +52,7 @@ def main():
         for src, dest, frameworks in [
             ('Autoclipper.swift', macos / 'Autoclipper', ('Cocoa', 'WebKit')),
             ('Trash.swift', templates / 'src/trash-file', ('Foundation',)),
+            ('face-camera.swift', templates / 'src/face-camera', ('AVFoundation', 'Vision', 'ImageIO')),
             ('video-thumbnail.swift', templates / 'src/video-thumbnail', ('AVFoundation', 'ImageIO')),
             ('sync/audio-envelope.swift', templates / 'src/sync/audio-envelope', ('AVFoundation', 'AudioToolbox')),
         ]:
@@ -76,7 +77,7 @@ def main():
                     if 'Mach-O' in kind:
                         build.run('codesign', '--force', '--timestamp', '--options', 'runtime',
                                   '--sign', identity, path)
-            for helper in ('trash-file', 'video-thumbnail', 'sync/audio-envelope'):
+            for helper in ('trash-file', 'video-thumbnail', 'face-camera', 'sync/audio-envelope'):
                 build.run('codesign', '--force', '--timestamp', '--options', 'runtime',
                           '--sign', identity, templates / 'src' / helper)
             build.run('codesign', '--force', '--timestamp', '--options', 'runtime',

@@ -35,6 +35,7 @@ def main(destination=None):
    path.write_text(text.replace('__AUTOCLIPPER_TOKEN__',settings['token']).replace("'__AUTOCLIPPER_HOST_JSX__'",json.dumps(str(installed_host))),encoding='utf-8')
  for surface in ('Chrome-Erweiterung','Premiere-Panel'):
   shutil.copy2(out/'src/i18n.js',out/surface/'i18n.js')
+ shutil.copy2(out/'src/clip-design.js',out/'Premiere-Panel/clip-design.js')
  if WINDOWS:
   shutil.copy2(ROOT/'packaging/Autoclipper.cmd',out/'Autoclipper.cmd')
  else:
@@ -43,6 +44,7 @@ def main(destination=None):
   for source,target,frameworks in [
    ('Autoclipper.swift',app/'MacOS/Autoclipper',['Cocoa','WebKit']),
    ('Trash.swift',out/'src/trash-file',['Foundation']),
+   ('face-camera.swift',out/'src/face-camera',['AVFoundation','Vision','ImageIO']),
    ('video-thumbnail.swift',out/'src/video-thumbnail',['AVFoundation','ImageIO']),
    ('sync/audio-envelope.swift',out/'src/sync/audio-envelope',['AVFoundation','AudioToolbox'])]:
    args=['xcrun','swiftc',out/'src'/source,'-o',target]

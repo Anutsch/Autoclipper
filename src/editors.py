@@ -7,7 +7,8 @@ import time
 from functools import lru_cache
 from pathlib import Path
 
-from platform_tools import WINDOWS, reveal_media
+from platform_tools import WINDOWS, open_folder, reveal_media
+from clip_design import capcut_folder, overlay_paths
 
 NAMES = {'premiere': 'Premiere Pro', 'resolve': 'DaVinci Resolve', 'capcut': 'CapCut'}
 
@@ -57,10 +58,16 @@ def destination():
     return next((editor for editor in NAMES if editor in running), 'premiere')
 
 
-def handoff(editor, paths, job_id):
+def handoff(editor, paths, job_id, root, design, camera=None):
     if not paths or not all(Path(path).is_file() for path in paths):
         raise ValueError('Mindestens eine heruntergeladene MP4 fehlt.')
+    if camera:
+        design = dict(design, assets=[camera, *design.get('assets', [])], cameraPath=camera)
     if editor == 'capcut':
+        folder = capcut_folder(root, paths, design, job_id)
+        if folder:
+            open_folder(folder)
+            return 'CapCut-Ordner geöffnet · Clips und Overlays in die Timeline ziehen.'
         return reveal_media(paths)
     app = running_editors().get('resolve')
     if not app:
@@ -73,7 +80,7 @@ def handoff(editor, paths, job_id):
         library = app / 'Contents/Libraries/Fusion/fusionscript.so'
     env = dict(os.environ, RESOLVE_SCRIPT_API=str(api), RESOLVE_SCRIPT_LIB=str(library))
     try:
-        result = subprocess.run([sys.executable, __file__, job_id], input=json.dumps(paths),
+        result = subprocess.run([sys.executable, __file__, job_id], input=json.dumps({'paths': paths, 'design': design}),
                                 env=dict(env, PYTHONIOENCODING='utf-8'), capture_output=True,
                                 encoding='utf-8', timeout=45)
     except subprocess.TimeoutExpired:
@@ -83,7 +90,7 @@ def handoff(editor, paths, job_id):
     return 'Timeline in DaVinci Resolve erstellt · ' + result.stdout.strip()
 
 
-def import_resolve(paths, job_id):
+def import_resolve(paths, job_id, design):
     sys.path.insert(0, str(Path(os.environ['RESOLVE_SCRIPT_API']) / 'Modules'))
     try:
         dll_directory = os.add_dll_directory(str(Path(os.environ['RESOLVE_SCRIPT_LIB']).parent)) if WINDOWS else None
@@ -101,13 +108,18 @@ def import_resolve(paths, job_id):
     name = 'Autoclipper ' + job_id[:12]
     path_key = lambda path: os.path.normcase(os.path.normpath(path))
     keys = [path_key(path) for path in paths]
+    overlays = overlay_paths(design)
     # Reuse the same name when retrying an import whose result is uncertain.
     for index in range(1, project.GetTimelineCount() + 1):
         existing = project.GetTimelineByIndex(index)
         if existing and existing.GetName() == name:
             clips = existing.GetItemListInTrack('video', 1) or []
             imported = [path_key(clip.GetMediaPoolItem().GetClipProperty('File Path')) for clip in clips]
-            if imported != keys:
+            overlay_tracks = [existing.GetItemListInTrack('video', track) or []
+                              for track in range(2, 2 + len(overlays))]
+            existing_overlays = [path_key(clip.GetMediaPoolItem().GetClipProperty('File Path'))
+                                 for track in overlay_tracks for clip in track]
+            if imported != keys or existing_overlays != [path_key(path) for path in overlays]:
                 raise ValueError('Resolve enthält bereits eine unvollständige Timeline: ' + name)
             project.SetCurrentTimeline(existing)
             if not manager.SaveProject():
@@ -136,6 +148,33 @@ def import_resolve(paths, job_id):
         placed = pool.AppendToTimeline([by_path[key] for key in keys])
         if not placed or len(placed) != len(paths):
             raise ValueError('Resolve konnte nicht alle Clips in die Timeline legen.')
+        start = timeline.GetStartFrame()
+        length = timeline.GetEndFrame() - start
+        for index, path in enumerate(overlays, 2):
+            if not Path(path).is_file():
+                raise ValueError('Overlay file missing: ' + Path(path).name)
+            items = pool.ImportMedia([path]) or []
+            if len(items) != 1:
+                raise ValueError('Resolve could not import the overlay.')
+            if timeline.GetTrackCount('video') < index and not timeline.AddTrack('video'):
+                raise ValueError('Resolve could not prepare the overlay track.')
+            info = dict(mediaPoolItem=items[0], mediaType=1, trackIndex=index, recordFrame=start)
+            if Path(path).suffix.lower() in ('.png', '.jpg', '.jpeg'):
+                frames = min(length, round(float(design.get('duration', 5)) * 30)) if path == design.get('titlePath') else length
+            else:
+                try:
+                    fps = float(items[0].GetClipProperty('FPS'))
+                    source_frames = int(items[0].GetClipProperty('Frames'))
+                    frames = min(source_frames, round(length * fps / 30))
+                except (TypeError, ValueError):
+                    raise ValueError('Resolve could not read the overlay duration.')
+            info.update(startFrame=0, endFrame=max(0, frames - 1))
+            overlay = pool.AppendToTimeline([info]) or []
+            if not overlay:
+                raise ValueError('Resolve could not place the overlay.')
+            if path == design.get('cameraPath') and not overlay[0].SetProperty('Tilt', 590):
+                raise ValueError('Resolve could not position the camera above the gameplay.')
+
     except Exception:
         if previous:
             project.SetCurrentTimeline(previous)
@@ -148,7 +187,8 @@ def import_resolve(paths, job_id):
 
 if __name__ == '__main__':
     try:
-        print(import_resolve(json.load(sys.stdin), sys.argv[1]))
+        payload = json.load(sys.stdin)
+        print(import_resolve(payload['paths'], sys.argv[1], payload['design']))
     except Exception as error:
         print(error)
         sys.exit(1)
