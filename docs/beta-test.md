@@ -1,25 +1,19 @@
-# Erster Clip mit fünf Editoren
+# First clip with five editors
 
-Sende fünf Editoren einzeln nur den Link zum veröffentlichten Beta-Release.
-Bitte sie, auf ihrem eigenen Rechner aus einem Twitch-Livestream einen
-Clip in eine Premiere-Timeline zu importieren. Sie können bei Problemen
-die Einrichtung in der App und die README nutzen.
+[English](beta-test.md) · [Deutsch](beta-test.de.md) · [Español](beta-test.es.md)
 
-Kurze Nachricht zum Kopieren:
+Send five editors the published beta release link individually. Ask each person to import a clip from a live Twitch stream into a Premiere timeline on their own computer. They can use the in-app setup guide and the [README](../README.md) if they get stuck.
 
-> Kannst du Autoclipper einmal auf deinem Rechner ausprobieren? Lade die
-> passende Beta aus dem Release herunter und versuche, einen Twitch-Clip
-> in Premiere einzufügen. Sag mir danach bitte, wie lange es vom Download
-> bis zur Timeline gedauert hat und wo du kurz hängen geblieben bist.
+Message to copy:
 
-Fragen nach jedem Test:
+> Could you try Autoclipper on your computer? Download the beta for your system and import a Twitch clip into Premiere. Let me know how long it took from download to timeline and where you got stuck.
 
-1. Welches Betriebssystem und welche Premiere-Version hast du verwendet?
-2. Wie viele Minuten lagen zwischen Download und Clip in der Timeline?
-3. Wo hast du gezögert oder Hilfe gebraucht? Was stand dort in der App?
-4. Wenn der Import scheiterte, konntest du die MP4 anzeigen und erneut importieren?
+1. Which operating system and Premiere version did you use?
+2. How many minutes elapsed from download to timeline?
+3. Where did you hesitate or need help? What did the app show?
+4. If the import failed, could you locate the MP4 and retry the import?
 
-| Test | Plattform / Premiere | Minuten | Timeline erreicht | Wo es hakte |
+| Test | Platform / Premiere | Minutes | Reached timeline | Where they got stuck |
 | --- | --- | ---: | --- | --- |
 | 1 | | | | |
 | 2 | | | | |
@@ -27,6 +21,4 @@ Fragen nach jedem Test:
 | 4 | | | | |
 | 5 | | | | |
 
-Vor dem öffentlichen Release mindestens einen vollständigen Premiere-Durchlauf
-auf macOS und Windows prüfen. Resolve Studio bleibt bis zu einem separaten
-Importtest als Beta gekennzeichnet. CapCut ist eine Dateiübergabe zum Reinziehen.
+Before a public release, verify one full Premiere run on macOS and one on Windows. Resolve Studio stays in beta until its import is tested separately. CapCut uses drag-and-drop.

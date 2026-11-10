@@ -1,15 +1,17 @@
-# Audio-Synchronisation mehrerer Ansichten
+# Audio alignment for multiple views
 
-Ab 2.1.0: Mehrere beim selben Klick ausgewählte Streams werden als Gruppe heruntergeladen, lokal analysiert und in einer neuen 1080×1920-/30-fps-Sequenz auf separaten Video-/Audiospuren platziert. Einzelauswahl behält den bisherigen Import. Originalaudio bleibt unverändert; keine Pegeländerungen oder Stummschaltung.
+[English](audio-sync.md) · [Deutsch](audio-sync.de.md) · [Español](audio-sync.es.md)
 
-AVFoundation dekodiert ausschließlich den verwendeten MP4-Bereich in temporäre Dreifrequenzband-Hüllkurven (50 Hz). Lokale FFT-Kreuzkorrelation bewertet alle Paare, mindestens 10–20 Sekunden Überlappung, Stärke, Abstand zu alternativen Treffern und Bestätigung in beiden Überlappungshälften. Ein Zusammenhangsgraph verbindet auch Paare ohne direkten Bezug zur ersten Ansicht. Widersprüchliche Offsets werden verworfen. Platzierung erfolgt auf dem 30-fps-Raster.
+Since 2.1.0, streams selected in one action are downloaded as a group, analysed locally and placed on separate video and audio tracks in a new 1080 × 1920 sequence at 30 fps. Single-view import works as before. Original audio levels and mute states are preserved.
 
-Ohne sicheren Bezug werden Ansichten bei 0 Sekunden auf eigenen Spuren mit Warnung importiert. Dies gilt nicht als erfolgreiche Synchronisation. Gleiche Auswahlzeit oder Twitch-Latenz dienen nicht als Ersatz für Audionachweise. Audiodaten ohne gemeinsame Signale, stumme Clips, Wiederholungen und Zeitdrift können manuelles Synchronisieren erfordern. Die Heuristik ist konservativ, aber keine Garantie für korrekte Ausrichtung.
+The macOS helper uses AVFoundation to decode the relevant MP4 range into temporary three-band envelopes at 50 Hz. Local FFT cross-correlation evaluates all pairs using 10–20 seconds of minimum overlap, peak strength, separation from alternative matches and agreement across both halves of the overlap. A graph links views that cannot be matched directly to the first view. Inconsistent offsets are rejected and placements are snapped to the 30 fps grid.
 
-Die Premiere-Erweiterung verwendet die bestehende CEP-Anbindung. Zusätzliche Spuren werden nur in der neuen eigenen Sequenz über die interne QE-Schnittstelle angelegt und anschließend geprüft. Diese Schnittstelle ist nicht öffentlich unterstützt; fehlende Spuren führen zu einem sichtbaren Fehler. Bestehende Sequenzen werden nicht für neue Gruppen verwendet.
+Views without a reliable match start at zero on separate tracks with a warning. A shared capture time or Twitch latency provides no audio evidence. Muted clips, different sound, repeated sounds and clock drift can require manual alignment.
 
-Abbruch während Capture/Download bleibt pro Ansicht möglich. Nach gemeinsamer Aufbereitung wird die Synchronisationsgruppe gemeinsam abgebrochen. Ein bereits ausführender Premiere-Schritt wird sicher beendet. Temporäre Analysedaten werden danach entfernt.
+Premiere uses CEP and adds tracks through the internal QE interface in the new sequence. Autoclipper checks that the tracks were created and reports an error if they are missing.
 
-Geprüft: mathematischer 6-Sekunden-Versatz, Ablehnung unabhängiger Signale/Stille und Syntax. Kein zusätzlicher Live-Clip-Test in Premiere gestartet.
+Capture and download can be cancelled per view. After group processing starts, cancellation applies to the group. A running Premiere step is allowed to finish safely. Temporary analysis files are then removed.
 
-Optionale [Clip-Gestaltung](../README.md#eigene-clip-gestaltung-in-premiere) wird nach dem Audio-Abgleich auf separaten Videospuren platziert.
+Verification covered a six-second offset, rejection of independent signals and silence, and syntax. A new live Premiere import was outside that check.
+
+Optional [titles and overlays](../README.md#titles-and-overlays) go on separate video tracks after alignment.
