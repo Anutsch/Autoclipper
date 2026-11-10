@@ -6,7 +6,7 @@ Lokales Tool für Twitch → Adobe Premiere Pro auf macOS und Windows. Chrome si
 
 **Downloads** · [macOS-Beta (Apple Silicon)](#eigenständige-macos-beta) · [Windows-Beta (x64)](#eigenständige-windows-beta)
 
-Veröffentlichte Pakete findest du unter [GitHub Releases](https://github.com/Anutsch/Auto-Clipper/releases).
+Veröffentlichte Pakete findest du unter [GitHub Releases](https://github.com/Anutsch/Autoclipper/releases).
 
 [Support & Spenden](SUPPORT.de.md) · [Ko-fi](https://ko-fi.com/anutsch)
 

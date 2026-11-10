@@ -732,7 +732,7 @@ class Handler(BaseHTTPRequestHandler):
     STORE.save()
    return {'ok':True}
   if path=='/api/open-support':
-   if not webbrowser.open('https://github.com/Anutsch/Auto-Clipper/blob/main/SUPPORT.md'):
+   if not webbrowser.open('https://github.com/Anutsch/Autoclipper/blob/main/SUPPORT.md'):
     raise ValueError('Die Support-Seite konnte nicht geöffnet werden.')
    return {'ok':True}
   if path=='/api/open-folder':

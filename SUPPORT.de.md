@@ -8,4 +8,4 @@ Autoclipper ist kostenlos. Wenn dir das Tool beim Schneiden von Twitch-Clips Zei
 
 Hilfe beim Einstieg findest du in der [Installationsanleitung](README.de.md#installation-aus-dem-github-download). Gib bei einer Fehlermeldung dein Betriebssystem, die Autoclipper-Version und die Schritte an, mit denen sich der Fehler nachstellen lässt.
 
-[Fehler auf GitHub melden](https://github.com/Anutsch/Auto-Clipper/issues/new)
+[Fehler auf GitHub melden](https://github.com/Anutsch/Autoclipper/issues/new)

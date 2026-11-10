@@ -4,7 +4,7 @@
 
 Autoclipper is a local Twitch editing tool for macOS and Windows. It downloads the MP4 from a fresh Twitch clip preview without publishing a clip on Twitch. **Premiere Pro** is the main workflow, **DaVinci Resolve Studio** is in beta, and **CapCut** uses a drag-and-drop handoff.
 
-**Downloads** · [GitHub Releases](https://github.com/Anutsch/Auto-Clipper/releases) · [macOS beta](#standalone-macos-beta) · [Windows beta](#standalone-windows-beta)
+**Downloads** · [GitHub Releases](https://github.com/Anutsch/Autoclipper/releases) · [macOS beta](#standalone-macos-beta) · [Windows beta](#standalone-windows-beta)
 
 [Support & donations](SUPPORT.md) · [Ko-fi](https://ko-fi.com/anutsch)
 

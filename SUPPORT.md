@@ -8,4 +8,4 @@ Autoclipper is free to use. If it saves you time editing Twitch clips, you can s
 
 If you need help getting started, see the [setup instructions](README.md#install-from-the-github-download). To report a bug, include your operating system, the Autoclipper version, and the steps to reproduce it.
 
-[Report a problem on GitHub](https://github.com/Anutsch/Auto-Clipper/issues/new)
+[Report a problem on GitHub](https://github.com/Anutsch/Autoclipper/issues/new)
