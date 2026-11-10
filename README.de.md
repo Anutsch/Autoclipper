@@ -13,6 +13,16 @@ Veröffentlichte Pakete findest du unter [GitHub Releases](https://github.com/An
 **Premiere Pro** ist der Hauptworkflow. **DaVinci Resolve Studio** ist Beta.
 Bei **CapCut** zeigt Autoclipper die MP4s zum Reinziehen an.
 
+## Autoclipper im Einsatz
+
+<p align="center">
+  <a href="docs/produktbilder/illustrated-9x16/01-clip-import.png"><img src="docs/produktbilder/illustrated-9x16/01-clip-import.png" width="31%" alt="Clips aus Twitch importieren"></a>
+  <a href="docs/produktbilder/illustrated-9x16/04-vertical-timeline.png"><img src="docs/produktbilder/illustrated-9x16/04-vertical-timeline.png" width="31%" alt="Vertikale Timeline in 9:16 mit 30 fps"></a>
+  <a href="docs/produktbilder/illustrated-9x16/08-auto-detection.png"><img src="docs/produktbilder/illustrated-9x16/08-auto-detection.png" width="31%" alt="Highlights anhand der Chataktivität automatisch erkennen"></a>
+</p>
+
+[Alle neun Produktbilder ansehen](docs/produktbilder/illustrated-9x16)
+
 ## Aktueller Stand
 
 - Eigenständige Live-Player in der Autoclipper-App mit Pause, Lautstärke und Mute; unabhängig von Chrome.

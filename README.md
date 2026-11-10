@@ -8,6 +8,16 @@ Autoclipper is a local Twitch editing tool for macOS and Windows. It downloads t
 
 [Support & donations](SUPPORT.md) · [Ko-fi](https://ko-fi.com/anutsch)
 
+## Autoclipper in action
+
+<p align="center">
+  <a href="docs/produktbilder/illustrated-9x16/01-clip-import.png"><img src="docs/produktbilder/illustrated-9x16/01-clip-import.png" width="31%" alt="Clip and import from Twitch"></a>
+  <a href="docs/produktbilder/illustrated-9x16/04-vertical-timeline.png"><img src="docs/produktbilder/illustrated-9x16/04-vertical-timeline.png" width="31%" alt="Vertical timeline in 9:16 at 30 fps"></a>
+  <a href="docs/produktbilder/illustrated-9x16/08-auto-detection.png"><img src="docs/produktbilder/illustrated-9x16/08-auto-detection.png" width="31%" alt="Automatically detect highlights from chat activity"></a>
+</p>
+
+[View all nine product images](docs/produktbilder/illustrated-9x16)
+
 ## Features
 
 - Watch streams in the app with independent pause, volume and mute controls.
