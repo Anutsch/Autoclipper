@@ -7,6 +7,8 @@ Lokales Tool für Twitch → Adobe Premiere Pro auf macOS und Windows. Chrome si
 Die Pakete sind für [GitHub Releases](https://github.com/Anutsch/Auto-Clipper/releases)
 vorgesehen. Der erste Beta-Release ist noch nicht veröffentlicht.
 
+[Support & donations](SUPPORT.md) · [Ko-fi](https://ko-fi.com/anutsch)
+
 **Premiere Pro** ist der Hauptworkflow. **DaVinci Resolve Studio** ist Beta.
 Bei **CapCut** zeigt Autoclipper die MP4s zum Reinziehen an.
 
@@ -16,7 +18,7 @@ Bei **CapCut** zeigt Autoclipper die MP4s zum Reinziehen an.
 - Permanente Chrome-Seitenleiste, Stream-Auswahl, Warteschlange und Abbruch.
 - Import ins offene Projekt; neue Sequenz je Auswahl, 1080 × 1920 mit 30 fps.
 - Bei Mehrfachauswahl: konservativer lokaler Audio-Abgleich und separate Video-/Audiospuren. Unsichere Treffer werden markiert.
-- Automatischer Titel auf der obersten Videospur bei Einzel- und synchronisierten Mehrfachauswahlen (Vorlage im Stil „Tiktok Titel“, 5 Sekunden ab Sequenzstart).
+- Optionale eigene Overlays und Titel im Premiere-Panel, mit Vorschau und Layouts für TikTok, Reels und Shorts.
 - Moment-Score aus Chat-Reaktionen, Emotes und kanalbezogenem Chattempo; Hover-Diagramm und visuelle Alarme.
 - Manuelle/optionale automatische Chat-Neuverbindung.
 - Kleine Video-Vorschaubilder, Dateiverwaltung über den Papierkorb und löschbare Logs.
@@ -131,13 +133,25 @@ Import in die Windows-Schnittprogramme ist noch nicht Ende zu Ende geprüft.
 | `assets/`, `packaging/` | Logo und App-Paketvorlage |
 | `docs/` | Technische Hinweise zur Audio-Synchronisation und zum Moment-Score |
 
-## Optionales Follow-Overlay in Premiere
+## Eigene Clip-Gestaltung in Premiere
 
-Für ein eigenes Follow-Overlay eine MOV-Datei als
-`~/Library/Application Support/Autoclipper/Follow.mov` ablegen.
-Unter Windows ist der entsprechende Pfad `%APPDATA%\Autoclipper\Follow.mov`.
-Autoclipper legt sie auf eine eigene Videospur unter dem Titel.
-Ohne diese Datei läuft der Import regulär weiter.
+Im Autoclipper-Panel **Clip-Gestaltung** öffnen. Dort lassen sich bis zu sechs
+eigene MOV-, MP4-, PNG- oder JPG-Dateien auswählen. Die Dateien werden ab
+Sequenzbeginn auf eigenen Videospuren platziert. Lass sie am ursprünglichen
+Speicherort, damit Premiere sie auch später findet.
+
+Der Titel-Editor unterstützt installierte Schriftarten, Schriftschnitt, Größe,
+Farbe, Position und Dauer. TikTok, Reels und Shorts haben verschiedene
+Startpositionen und Ränder für ihre Bedienelemente. Der Titel wird als
+transparente 1080 × 1920 PNG-Grafik oberhalb der Overlays eingefügt.
+Er lässt sich im Autoclipper-Panel gestalten. Premiere behandelt ihn als
+Bilddatei.
+
+**Als Standard speichern** gilt für neue Aufträge. Aktiviere **Bei neuen
+Clips auf Gestaltung warten**, wenn du während des Downloads am Titel
+arbeiten willst. Danach **Für aktuellen Clip übernehmen** oder **Ohne
+Gestaltung importieren** wählen. Ohne gespeicherten Standard startet jeder
+Import mit den Originalclips.
 
 ## Grenzen
 
@@ -158,5 +172,5 @@ Ist keines geöffnet, bleibt der automatische Premiere-Start der Standard.
   „External scripting using“ auf „Local“ setzen und ein Projekt öffnen.
   Autoclipper legt die Clips in einer neuen vertikalen Timeline (1080 × 1920,
   30 fps) ab. Mehrere Ansichten liegen hintereinander. Audio-Synchronisation,
-  Premiere-Titelvorlage und Follow-Overlay gehören zum Premiere-Workflow.
+  Titel und eigene Overlays gehören zum Premiere-Workflow.
 - **CapCut:** Autoclipper zeigt die MP4s im Finder oder Windows-Explorer. Von dort lassen sie sich in CapCut ziehen.

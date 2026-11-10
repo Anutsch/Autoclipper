@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Autoclipper – Twitch → Premiere",
-  "version": "2.1.0",
-  "description": "Clip-Steuerung für Twitch: Ansichten auswählen, frische MP4-Vorschau herunterladen und in Premiere einfügen. Status und Speicher in der Autoclipper-App.",
+  "version": "2.1.1",
+  "description": "__MSG_extensionDescription__",
   "permissions": [
     "tabs",
     "scripting",
@@ -23,7 +23,7 @@
     "service_worker": "worker.js"
   },
   "action": {
-    "default_title": "Autoclipper-Seitenleiste öffnen",
+    "default_title": "__MSG_openSidebar__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -63,5 +63,6 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "default_locale": "de"
 }

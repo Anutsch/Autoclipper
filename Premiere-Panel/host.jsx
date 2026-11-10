@@ -81,22 +81,16 @@ AC.addToTimeline=function(item,path,id,sequenceKey,sequenceId){
  var inserted=AC.timelineClip(seq,path);
  if(!inserted)throw Error('Premiere hat das Einfügen in die Timeline nicht bestätigt.');
  app.project.openSequence(seq.sequenceID);
- AC.addFollowVideo(seq);
- AC.addTitle(seq);
  seq.setPlayerPosition(inserted.start.ticks);
  return seq.name;
 };
 
-AC.execute=function(id,kind,path){
- if(kind==='batch'){var payload=eval('('+path+')');return AC.executeBatch(id,payload.sources,payload.targetProject);}
+AC.execute=function(id,kind,path,design){
+ if(kind==='batch'){var payload=eval('('+path+')');return AC.executeBatch(id,payload.sources,payload.targetProject,design);}
  if(AC.cached[id])return AC.cached[id];
  try{
   app.setExtensionPersistent('de.autoclipper.premiere.window',1);
-  if(kind==='title'){
-   var target=eval('('+path+')');
-   if(!app.isDocumentOpen()||app.project.path!==target.projectPath||!app.project.activeSequence||app.project.activeSequence.sequenceID!==target.sequenceId)throw Error('Aktive Sequenz wurde gewechselt. Titel nicht eingefügt.');
-   AC.addTitle(app.project.activeSequence);if(app.project.path)app.project.save();
-  }else if(kind==='rename'){
+  if(kind==='rename'){
    var projects=[];
    if(app.projects)for(var p=0;p<app.projects.numProjects;p++)projects.push(app.projects[p]);
    if(!projects.length)projects.push(app.project);
@@ -137,7 +131,8 @@ AC.execute=function(id,kind,path){
    }
    var media=AC.findMedia(app.project.rootItem,path);
    if(!media)throw Error('Importierte MP4 wurde nicht im Projekt gefunden.');
-   AC.addToTimeline(media,path,id);
+   AC.addToTimeline(media,path,id,id);
+   AC.addDesign(app.project.activeSequence,design);
    app.project.save();
   }
   AC.cached[id]=AC.result(true,AC.projectName(),'');
@@ -145,8 +140,8 @@ AC.execute=function(id,kind,path){
  return AC.cached[id];
 };
 
-AC.executeBatch=function(id,sources,targetProject){
- if(sources.length>1&&sources[0].syncMode)return AC.executeSyncBatch(id,sources,targetProject);
+AC.executeBatch=function(id,sources,targetProject,design){
+ if(sources.length>1&&sources[0].syncMode)return AC.executeSyncBatch(id,sources,targetProject,design);
  if(AC.cached[id])return AC.cached[id];
  try{
   if(!app.isDocumentOpen()||!app.project.rootItem)throw Error('Zuerst ein Projekt oeffnen.');
@@ -167,6 +162,7 @@ AC.executeBatch=function(id,sources,targetProject){
     placed.name=String(source.channel||'Twitch')+' · Tab '+source.tabId;
    }finally{item.setInPoint(oldIn.seconds,4);item.setOutPoint(oldOut.seconds,4);}
   }
+  AC.addDesign(app.project.activeSequence,design);
   if(app.project.path)app.project.save();AC.cached[id]=AC.result(true,AC.projectName(),'');
  }catch(e){try{if(app.project.path)app.project.save();}catch(ignore){}AC.cached[id]=AC.result(false,AC.projectName(),String(e)+' (Zeile '+e.line+')');}
  return AC.cached[id];
@@ -190,7 +186,6 @@ AC.focusSequence=function(sequenceId,projectPath){
 };
 
 // Multi-view alignment is computed locally before Premiere receives the batch.
-AC.titleTemplatePath=(new File($.fileName)).parent.fsName+'/templates/autoclipper-title.mogrt';
 AC.ensureSyncTracks=function(seq,count,audioCount){
  audioCount=audioCount===undefined?count:audioCount;
  if(seq.videoTracks.numTracks>=count && seq.audioTracks.numTracks>=audioCount)return;
@@ -204,55 +199,54 @@ AC.ensureSyncTracks=function(seq,count,audioCount){
  }
  if(seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<audioCount)throw Error('Nicht genügend getrennte Video-/Audiospuren verfügbar.');
 };
-// Place the reusable follow animation on its own layer without moving source clips.
-AC.addFollowVideo=function(seq){
- var file=new File(Folder.userData.fsName+'/Autoclipper/Follow.mov');
- if(!file.exists)return;
- var path=file.fsName;
- if(AC.timelineClip(seq,path))return;
- var item=AC.findMedia(app.project.rootItem,path);
- if(!item){
-  if(!app.project.importFiles([path],true,app.project.rootItem,false))throw Error('Follow-Video konnte nicht importiert werden.');
-  item=AC.findMedia(app.project.rootItem,path);
- }
- if(!item)throw Error('Importiertes Follow-Video fehlt.');
- app.project.openSequence(seq.sequenceID);
- var top=seq.videoTracks.numTracks-1;
- if(top<0||seq.videoTracks[top].clips.numItems){
-  app.enableQE();var qeSeq=qe.project.getActiveSequence(),before=seq.videoTracks.numTracks;
-  if(!qeSeq)throw Error('Follow-Videospur konnte nicht erstellt werden.');
-  qeSeq.addTracks(1,before,0);top=seq.videoTracks.numTracks-1;
-  if(seq.videoTracks.numTracks<=before||seq.videoTracks[top].clips.numItems)throw Error('Keine freie Follow-Videospur.');
- }
- // Use the video-track API so no linked audio can overwrite stream audio.
- seq.videoTracks[top].overwriteClip(item,'0');
- var placed=AC.timelineClip(seq,path);
- if(!placed||Math.abs(placed.start.seconds)>1/30)throw Error('Follow-Video wurde in der Timeline nicht bestätigt.');
- seq.videoTracks[top].name='Follow';
+AC.pickDesignAssets=function(){
+ var files=File.openDialog('Choose overlay files',undefined,true);
+ if(!files)return '[]';
+ var result=[];
+ for(var i=0;i<files.length;i++)result.push(AC.quote(files[i].fsName));
+ return '['+result.join(',')+']';
 };
-AC.addTitle=function(seq){
- if(!seq)throw Error('Keine aktive Sequenz für den Titel.');
- var tag='Autoclipper · Titel';
- for(var t=0;t<seq.videoTracks.numTracks;t++)for(var c=0;c<seq.videoTracks[t].clips.numItems;c++)if(seq.videoTracks[t].clips[c].name===tag)return;
- var template=new File(AC.titleTemplatePath);
- if(!template.exists)template=new File(Folder.userData.fsName+'/Adobe/CEP/extensions/de.autoclipper.premiere/templates/autoclipper-title.mogrt');
- if(!template.exists)throw Error('Titelvorlage fehlt: '+template.fsName);
- var top=seq.videoTracks.numTracks-1;
- if(top<0||seq.videoTracks[top].clips.numItems){
-  app.project.openSequence(seq.sequenceID);app.enableQE();var qeSeq=qe.project.getActiveSequence(),before=seq.videoTracks.numTracks;
-  if(!qeSeq)throw Error('Titelspur konnte nicht erstellt werden.');
-  qeSeq.addTracks(1,before,0);top=seq.videoTracks.numTracks-1;
-  if(seq.videoTracks.numTracks<=before||seq.videoTracks[top].clips.numItems)throw Error('Keine freie oberste Titelspur. Vorhandene Clips bleiben erhalten.');
+
+AC.addDesign=function(seq,design){
+ if(!design)return;
+ var paths=(design.assets||[]).slice(0);
+ if(design.titlePath)paths.push(design.titlePath);
+ if(!paths.length)return;
+ var end=new Time();end.ticks=String(seq.end);
+ for(var i=0;i<paths.length;i++){
+  var path=paths[i],isTitle=path===design.titlePath;
+  if(AC.timelineClip(seq,path))continue;
+  var item=AC.findMedia(app.project.rootItem,path);
+  if(!item){
+   if(!(new File(path)).exists||!app.project.importFiles([path],true,app.project.rootItem,false))
+    throw Error('Overlay could not be imported: '+(new File(path)).displayName);
+   item=AC.findMedia(app.project.rootItem,path);
+  }
+  if(!item)throw Error('Imported overlay is missing.');
+  var top=seq.videoTracks.numTracks-1;
+  if(top<0||seq.videoTracks[top].clips.numItems){
+   app.project.openSequence(seq.sequenceID);
+   app.enableQE();
+   var qeSeq=qe.project.getActiveSequence(),count=seq.videoTracks.numTracks;
+   if(!qeSeq)throw Error('Could not create an overlay track.');
+   qeSeq.addTracks(1,count,0);
+   top=seq.videoTracks.numTracks-1;
+   if(seq.videoTracks.numTracks<=count||seq.videoTracks[top].clips.numItems)
+    throw Error('No empty overlay track is available.');
+  }
+  var track=seq.videoTracks[top];
+  track.overwriteClip(item,'0');
+  var placed=AC.timelineClip(seq,path);
+  if(!placed||Math.abs(placed.start.seconds)>1/30||track.clips.numItems!==1)
+   throw Error('Premiere did not confirm the overlay placement.');
+  var trim=new Time();
+  trim.seconds=isTitle?Math.min(end.seconds,Number(design.duration||5)):Math.min(placed.end.seconds,end.seconds);
+  placed.end=trim;
+  if(isTitle)placed.name=String(design.title);
+  track.name=isTitle?'Autoclipper Title':'Autoclipper Overlay';
  }
- var sequenceEnd=new Time();sequenceEnd.ticks=String(seq.end);
- var title=seq.importMGT(template.fsName,'0',top,0);
- if(!title&&seq.videoTracks[top].clips.numItems===1)title=seq.videoTracks[top].clips[0];
- if(!title)throw Error('Premiere konnte die Titelvorlage nicht einfügen.');
- var end=new Time();end.seconds=Math.min(5,Math.max(1/30,sequenceEnd.seconds));title.end=end;
- if(Math.abs(title.start.seconds)>1/30||seq.videoTracks[top].clips.numItems!==1||seq.videoTracks[top].clips[0].nodeId!==title.nodeId)throw Error('Premiere hat den Titel auf der obersten Spur nicht bestätigt.');
- title.name=tag;seq.videoTracks[top].name='Titel';
 };
-AC.executeSyncBatch=function(id,sources,targetProject){
+AC.executeSyncBatch=function(id,sources,targetProject,design){
  if(AC.cached[id])return AC.cached[id];
  try{
   if(!app.isDocumentOpen()||!app.project.rootItem)throw Error('Zuerst ein Projekt öffnen.');
@@ -275,7 +269,7 @@ AC.executeSyncBatch=function(id,sources,targetProject){
   if(!populated){
    for(t=0;t<seq.videoTracks.numTracks;t++)for(c=seq.videoTracks[t].clips.numItems-1;c>=0;c--)seq.videoTracks[t].clips[c].remove(false,false);
    for(t=0;t<seq.audioTracks.numTracks;t++)for(c=seq.audioTracks[t].clips.numItems-1;c>=0;c--)seq.audioTracks[t].clips[c].remove(false,false);
-   AC.ensureSyncTracks(seq,sources.length+1,sources.length);
+   AC.ensureSyncTracks(seq,sources.length,sources.length);
   }
   for(i=0;i<sources.length;i++){
    var source=sources[i],item=items[i],pb=source.playback,oldIn=item.getInPoint(4),oldOut=item.getOutPoint(4),offset=Number(source.syncOffset);
@@ -292,8 +286,7 @@ AC.executeSyncBatch=function(id,sources,targetProject){
     seq.videoTracks[i].name=String(source.channel||'Ansicht '+(i+1));seq.audioTracks[i].name=String(source.channel||'Audio '+(i+1));
    }finally{item.setInPoint(oldIn.seconds,4);item.setOutPoint(oldOut.seconds,4);}
   }
-  AC.addFollowVideo(seq);
-  AC.addTitle(seq);
+  AC.addDesign(seq,design);
   // Adding graphics must never shift the synchronized views.
   for(i=0;i<sources.length;i++){var check=AC.timelineClip(seq,sources[i].path);if(!check||Math.abs(check.start.seconds-Number(sources[i].syncOffset))>1/30)throw Error('Die Titelvorlage hat eine Ansicht verschoben. Bitte die Timeline prüfen.');}
   app.project.openSequence(seq.sequenceID);seq.setPlayerPosition('0');if(app.project.path)app.project.save();AC.cached[id]=AC.result(true,AC.projectName(),'');

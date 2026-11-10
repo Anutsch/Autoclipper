@@ -8,19 +8,19 @@
  function paint(){
   if(!opened||!current)return;
   const entry=data.get(current);if(!entry)return;const m=entry.moment,mode=state(m);tip.replaceChildren();
-  const head=node('div',null,'moment-tooltip-head');head.append(node('strong',entry.name),node('span',mode==='learning'?'Lernt …':mode==='unavailable'?'Chat nicht verbunden':(m.score||0)+' / 100',mode==='alert'?'hot':''));tip.append(head);
-  if(mode==='learning'||mode==='unavailable'){tip.append(node('p',mode==='learning'?'Normalen Chatverlauf kennenlernen · ca. 45 Sekunden':'Stream und Chat in Chrome öffnen.','moment-caption'));}
+  const head=node('div',null,'moment-tooltip-head');head.append(node('strong',entry.name),node('span',mode==='learning'?acText('Lernt …'):mode==='unavailable'?acText('Chat nicht verbunden'):(m.score||0)+' / 100',mode==='alert'?'hot':''));tip.append(head);
+  if(mode==='learning'||mode==='unavailable'){tip.append(node('p',mode==='learning'?acText('Normalen Chatverlauf kennenlernen · ca. 45 Sekunden'):acText('Stream und Chat in Chrome öffnen.'),'moment-caption'));}
   const points=fresh(m)?m.history||[]:[];
   if(points.length>1){
-   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 280 86');svg.setAttribute('class','moment-plot');svg.setAttribute('role','img');svg.setAttribute('aria-label','Moment-Score der letzten vier Minuten, von 0 bis 100');
+   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 280 86');svg.setAttribute('class','moment-plot');svg.setAttribute('role','img');svg.setAttribute('aria-label',acText('Moment-Score der letzten vier Minuten, von 0 bis 100'));
    for(const level of [0,50,100]){const line=document.createElementNS(ns,'path');line.setAttribute('d','M0 '+(79-level*.7)+' H280');line.setAttribute('class','moment-grid');svg.append(line);}
    const end=Date.now(),start=end-240000;const coords=points.map(p=>[Math.max(0,Math.min(280,(p.at-start)/240000*280)),79-Math.min(100,Math.max(0,p.score))*.7]);
    const path=document.createElementNS(ns,'path');path.setAttribute('d',coords.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' '));path.setAttribute('class','moment-line'+(mode==='alert'?' hot':''));svg.append(path);tip.append(svg);
-   const axis=node('div',null,'moment-axis');axis.append(node('span','−4 Min.'),node('span','jetzt'));tip.append(axis);
+   const axis=node('div',null,'moment-axis');axis.append(node('span',acText('−4 Min.')),node('span','jetzt'));tip.append(axis);
   }
   if(fresh(m)&&mode!=='unavailable'){
-   const stats=node('div',null,'moment-stats');stats.append(node('span',m.rate+' / Min.'),node('span',m.users+' Personen · 15 s'));tip.append(stats);
-   const reasons=m.reasons?.length?m.reasons:[mode==='calm'?'Keine auffällige Reaktionswelle':''];for(const reason of reasons)if(reason)tip.append(node('div',reason,'moment-reason'));
+   const stats=node('div',null,'moment-stats');stats.append(node('span',m.rate+acText(' / Min.')),node('span',m.users+acText(' Personen · 15 s')));tip.append(stats);
+   const reasons=m.reasons?.length?m.reasons:[mode==='calm'?acText('Keine auffällige Reaktionswelle'):''];for(const reason of reasons)if(reason)tip.append(node('div',acMessage(reason),'moment-reason'));
   }
   position();
  }

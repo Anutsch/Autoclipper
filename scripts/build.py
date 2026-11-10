@@ -33,6 +33,8 @@ def main(destination=None):
    try:text=path.read_text(encoding='utf-8')
    except UnicodeError:continue
    path.write_text(text.replace('__AUTOCLIPPER_TOKEN__',settings['token']).replace("'__AUTOCLIPPER_HOST_JSX__'",json.dumps(str(installed_host))),encoding='utf-8')
+ for surface in ('Chrome-Erweiterung','Premiere-Panel'):
+  shutil.copy2(out/'src/i18n.js',out/surface/'i18n.js')
  if WINDOWS:
   shutil.copy2(ROOT/'packaging/Autoclipper.cmd',out/'Autoclipper.cmd')
  else:

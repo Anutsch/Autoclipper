@@ -38,6 +38,8 @@ def main(resources, root):
             content = content.replace("'__AUTOCLIPPER_HOST_JSX__'",
                                       json.dumps(str(panel_directory() / 'host.jsx')))
             (target / original.relative_to(source)).write_text(content, encoding='utf-8')
+    for surface in ('Chrome-Erweiterung', 'Premiere-Panel'):
+        shutil.copy2(root / 'src/i18n.js', root / surface / 'i18n.js')
     sys.path.insert(0, str(root / 'src'))
     runpy.run_path(str(root / 'src/server.py'), run_name='__main__')
 

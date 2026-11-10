@@ -1,10 +1,11 @@
 #!/usr/bin/python3
-import hashlib, json, os, re, secrets, subprocess, threading, time, uuid
+import hashlib, json, os, re, secrets, subprocess, threading, time, uuid, webbrowser
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.parse import urlsplit, parse_qs
 from audio_sync import synchronize
+from clip_design import MAX_REQUEST, prepare_design
 from editors import NAMES, destination, handoff, running_editors
 from platform_tools import acquire_lock, install_panel, launch_premiere, open_chrome_setup, open_folder, panel_directory, reveal_media, show_app, thumbnail_command, trash_file
 ROOT=Path(__file__).resolve().parent.parent
@@ -141,6 +142,9 @@ class Store:
   with LOCK:
    recent={j['id'] for j in self.data['jobs'][-30:]}
    jobs=[dict(j,retryable=self.retryable(j),hasMedia=bool(self.saved_media(j))) for j in self.data['jobs'] if j['id'] in recent or j['status'] not in TERMINAL]
+   for job in jobs:
+    if job['status']=='import_wait' and job.get('awaitingDesign'):
+     job['message']='Wartet auf Gestaltung im Premiere-Panel.'
    try:
     installed=(panel_directory()/'panel.js').read_bytes()==(self.root/'Premiere-Panel/panel.js').read_bytes()
    except OSError:
@@ -300,12 +304,17 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if self.path=='/assets/logo.png':
    body=(ROOT/'assets'/'logo.png').read_bytes();self.send_response(200);self.send_header('Content-Type','image/png');self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
+  if self.path=='/i18n.js':
+   body=(ROOT/'src'/'i18n.js').read_bytes()
+   self.send_response(200);self.send_header('Content-Type','text/javascript; charset=utf-8')
+   self.send_header('Content-Length',str(len(body)));self.send_header('Cache-Control','no-store')
+   self.end_headers();return self.wfile.write(body)
   if self.path=='/health':return self.reply({'app':'Autoclipper','version':1})
   if self.path=='/':
    # The app token is never exposed to an unrelated web origin.
    if self.headers.get('Host')!=f'127.0.0.1:{PORT}' or self.headers.get('Origin') or self.headers.get('Sec-Fetch-Site') in ('cross-site','same-site'):
     return self.reply({'error':'Direkt in Autoclipper öffnen.'},403)
-   body=(ROOT/'src'/'index.html').read_bytes();self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Security-Policy',"default-src 'self'; img-src 'self' blob: https://static-cdn.jtvnw.net https://*.twitchcdn.net; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-src https://player.twitch.tv; frame-ancestors 'none'");self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
+   body=(ROOT/'src'/'index.html').read_bytes();self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Security-Policy',"default-src 'self'; img-src 'self' blob: https://static-cdn.jtvnw.net https://*.twitchcdn.net; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-src https://player.twitch.tv; frame-ancestors 'none'");self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
   if not self.auth():return self.reply({'error':'Nicht autorisiert'},403)
   if urlsplit(self.path).path=='/api/thumbnail':
    name=parse_qs(urlsplit(self.path).query).get('name',[''])[0];folder=ROOT/'Clips';source=folder/name
@@ -327,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
   if not self.auth():return self.reply({'error':'Nicht autorisiert'},403)
   try:
    length=int(self.headers.get('Content-Length','0'))
-   if length>200000:raise ValueError('Anfrage zu groß')
+   if length>(MAX_REQUEST if self.path=='/api/clip-design' else 200000):raise ValueError('Anfrage zu groß')
    data=json.loads(self.rfile.read(length) or b'{}')
    with LOCK: result=self.action(self.path,data)
    self.reply(result)
@@ -344,6 +353,11 @@ class Handler(BaseHTTPRequestHandler):
    STORE.data.setdefault('preferences',{})['editor']=editor;STORE.save();return {'ok':True}
   if path=='/api/open-premiere':
    launch_premiere();return {'ok':True}
+  if path=='/api/language':
+   locale=d.get('locale')
+   if locale not in ('de','en-GB','en-US','es'):raise ValueError('Unsupported language.')
+   STORE.data.setdefault('preferences',{})['locale']=locale;STORE.save()
+   return {'ok':True}
   if path=='/api/preferences':
    value=d.get('autoChatReconnect')
    if type(value) is not bool:raise ValueError('Ungültige Einstellung.')
@@ -446,10 +460,13 @@ class Handler(BaseHTTPRequestHandler):
     try:launch_premiere()
     except OSError:
      STORE.update(bootstrap,status='error',message='Premiere konnte nicht gestartet werden.');raise ValueError('Premiere konnte nicht gestartet werden.')
+   preferences=STORE.data.get('preferences',{})
+   design=preferences.get('clipDesign',{}) if editor=='premiere' else {}
+   awaiting=editor=='premiere' and preferences.get('holdDesign') is True
    group=uuid.uuid4().hex;jobs=[]
    for tab in chosen:
     child=dict(id=uuid.uuid4().hex,kind='clip',status='capturing',tabId=tab['id'],channel=tab.get('title','Twitch'),sequenceKey=group)
-    job=STORE.add('batch',queueEntry=True,captureGroup=group,editor=editor,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
+    job=STORE.add('batch',queueEntry=True,captureGroup=group,editor=editor,design=design,awaitingDesign=awaiting,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
     child['parentId']=job['id'];jobs.append(job)
    STORE.save()
    return dict(jobs[0],captureJobs=jobs)
@@ -508,14 +525,29 @@ class Handler(BaseHTTPRequestHandler):
     STORE.update(j,status='downloading',message='MP4 gefunden …')
     threading.Thread(target=download,args=(j,d['url']),daemon=True).start()
    return {'ok':True}
-  if path=='/api/add-title':
-   if time.time()-STORE.premiere_time>8:raise ValueError('Premiere-Panel nicht verbunden.')
-   if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Bitte laufenden Auftrag abwarten.')
-   info=STORE.premiere
-   if not info.get('sequenceId') or not info.get('projectPath'):raise ValueError('Keine gespeicherte Sequenz aktiv.')
-   target=json.dumps({'sequenceId':info['sequenceId'],'projectPath':info['projectPath']})
-   job=STORE.add('title',path=target,channel='Titel')
-   STORE.update(job,status='premiere_wait',message='Titel wird in der aktiven Sequenz ergänzt …');return job
+  if path=='/api/design-hold':
+   hold=d.get('hold')
+   if type(hold) is not bool:raise ValueError('Invalid design setting.')
+   STORE.data.setdefault('preferences',{})['holdDesign']=hold
+   STORE.save();return {'ok':True}
+  if path=='/api/clip-design':
+   job_id=d.get('jobId')
+   if job_id:
+    job=next((entry for entry in STORE.data['jobs'] if entry['id']==job_id),None)
+    if not job or job['kind'] not in ('batch','clip') or job.get('editor','premiere')!='premiere' or job['status'] in TERMINAL|{'executing'}:
+     raise ValueError('This clip is already importing or finished.')
+    group=job.get('captureGroup')
+    members=[entry for entry in STORE.data['jobs'] if entry is job or (group and entry.get('captureGroup')==group)]
+    if any(entry['status']=='executing' for entry in members):
+     raise ValueError('This clip is already importing or finished.')
+   design=prepare_design(ROOT,d)
+   if job_id:
+    for entry in members:
+     if entry['status'] not in TERMINAL:
+      entry.update(design=design,awaitingDesign=False)
+   else:
+    STORE.data.setdefault('preferences',{})['clipDesign']=design
+   STORE.save();return {'ok':True}
   if path=='/api/new-project':
    if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Ein neues Projekt wartet bereits auf Premiere.')
    project=STORE.project_path();j=STORE.add('project',path=project,keepPanel=d.get('keepPanel') is True)
@@ -546,12 +578,12 @@ class Handler(BaseHTTPRequestHandler):
     if not STORE.retryable(old):raise ValueError('Nicht alle MP4-Dateien sind noch vorhanden. Bitte in Chrome erneut clippen.')
     import copy
     sources=copy.deepcopy(old['sources'])
-    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=STORE.premiere.get('project','') if editor=='premiere' and time.time()-STORE.premiere_time<8 else '',retryOf=old['id'],editor=editor,editorImportId=import_id)
+    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=STORE.premiere.get('project','') if editor=='premiere' and time.time()-STORE.premiere_time<8 else '',retryOf=old['id'],editor=editor,editorImportId=import_id,design=old.get('design',{}) if editor=='premiere' else {})
     for source in sources:source['parentId']=j['id']
     STORE.update(j,status='import_wait',path=json.dumps({'sources':sources,'targetProject':j['targetProject']},ensure_ascii=True),message='Gespeicherte MP4s · '+NAMES[editor])
     return j
    if old['status'] not in TERMINAL or not old.get('path') or not Path(old['path']).is_file() or Path(old['path']).suffix!='.mp4':raise ValueError('Keine heruntergeladene MP4 zum Importieren.')
-   j=STORE.add('clip',path=old['path'],editor=editor,editorImportId=import_id);STORE.update(j,status='import_wait',message='Wartet auf '+NAMES[editor]+' …');return j
+   j=STORE.add('clip',path=old['path'],editor=editor,editorImportId=import_id,design=old.get('design',{}) if editor=='premiere' else {});STORE.update(j,status='import_wait',message='Wartet auf '+NAMES[editor]+' …');return j
   if path=='/api/premiere':
    STORE.premiere={'connected':True,'project':str(d.get('project','')),'sequence':str(d.get('sequence','')),'sequenceId':str(d.get('sequenceId','')),'projectPath':str(d.get('projectPath','')),'width':d.get('width'),'height':d.get('height'),'fps':d.get('fps')};STORE.premiere_time=time.time()
    # No lease expiry: uncertain script execution must never create a second project.
@@ -560,15 +592,14 @@ class Handler(BaseHTTPRequestHandler):
     for pending in STORE.data['jobs']:
      if pending['status']=='import_wait' and pending.get('bootstrapError'):STORE.update(pending,status='error',message=pending['bootstrapError'])
     first_queue=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
-    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested')),None)
+    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested') and not j.get('awaitingDesign')),None)
     if job:STORE.update(job,status='executing',message='Premiere erstellt das Projekt …' if job['kind']=='project' else 'Premiere importiert die MP4 …')
    return {'job':job}
   if path=='/api/premiere-result':
    j=next((j for j in STORE.data['jobs'] if j['id']==d['id']),None)
    if j is None:return {'ok':True}
    if j['status']!='executing' or j.get('editor','premiere')!='premiere':return {'ok':True}
-   if d.get('ok') and j['kind']=='title':STORE.update(j,status='done',message='Titel auf oberster Videospur ergänzt.')
-   elif d.get('ok'):STORE.update(j,status='done',message='Sequenznamen aktualisiert.' if j['kind']=='rename' else ('Projekt erstellt: '+Path(j['path']).stem if j['kind'] in ('project','ensure') else 'Ansichten in Premiere eingefuegt: '+str(d.get('project',''))))
+   if d.get('ok'):STORE.update(j,status='done',message='Sequenznamen aktualisiert.' if j['kind']=='rename' else ('Projekt erstellt: '+Path(j['path']).stem if j['kind'] in ('project','ensure') else 'Ansichten in Premiere eingefuegt: '+str(d.get('project',''))))
    else:STORE.update(j,status='error',message=str(d.get('error','Premiere-Fehler')))
    if j.get('syncMemberIds'):
     if d.get('ok') and j.get('syncWarning'):STORE.update(j,message='Importiert · '+j['syncWarning'])
@@ -591,6 +622,10 @@ class Handler(BaseHTTPRequestHandler):
       if parent.get('sources') and parent.get('path'):parent['path']=json.dumps({'sources':parent['sources'],'targetProject':parent['targetProject']},ensure_ascii=True)
      else:parent['bootstrapError']='Projekt konnte nicht vorbereitet werden. MP4s bleiben gespeichert: '+str(d.get('error','Premiere-Fehler'))
     STORE.save()
+   return {'ok':True}
+  if path=='/api/open-support':
+   if not webbrowser.open('https://github.com/Anutsch/Auto-Clipper/blob/main/SUPPORT.md'):
+    raise ValueError('Die Support-Seite konnte nicht geöffnet werden.')
    return {'ok':True}
   if path=='/api/open-folder':
    open_folder(ROOT);return {'ok':True}
