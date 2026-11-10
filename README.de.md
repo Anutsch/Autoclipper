@@ -8,7 +8,11 @@ Lokales Tool für Twitch → Adobe Premiere Pro auf macOS und Windows. Chrome si
 
 Veröffentlichte Pakete findest du unter [GitHub Releases](https://github.com/Anutsch/Autoclipper/releases).
 
-[Support & Spenden](SUPPORT.de.md) · [Ko-fi](https://ko-fi.com/anutsch)
+> **[☕ Autoclipper auf Ko-fi unterstützen](https://ko-fi.com/anutsch)**
+>
+> Wenn dir Autoclipper beim Schnitt Zeit spart, kannst du die Entwicklung mit einem Kaffee unterstützen.
+
+[Hilfe & Kontakt](SUPPORT.de.md)
 
 **Premiere Pro** ist der Hauptworkflow. **DaVinci Resolve Studio** ist Beta.
 Bei **CapCut** zeigt Autoclipper die MP4s zum Reinziehen an.

@@ -6,7 +6,11 @@ Autoclipper es una herramienta local de edición para Twitch en macOS y Windows.
 
 **Descargas** · [GitHub Releases](https://github.com/Anutsch/Autoclipper/releases) · [Beta para macOS](#beta-independiente-para-macos) · [Beta para Windows](#beta-independiente-para-windows)
 
-[Soporte y donaciones](SUPPORT.es.md) · [Ko-fi](https://ko-fi.com/anutsch)
+> **[☕ Apoya a Autoclipper en Ko-fi](https://ko-fi.com/anutsch)**
+>
+> Si Autoclipper te ahorra tiempo al editar, puedes apoyar su desarrollo con un café.
+
+[Ayuda y contacto](SUPPORT.es.md)
 
 ## Autoclipper en acción
 
