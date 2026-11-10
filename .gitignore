@@ -17,3 +17,12 @@ __pycache__/
 *.py[cod]
 .DS_Store
 .venv/
+
+# Personal media, Adobe presets and credentials
+*.mov
+*.prtextstyle
+.env
+.env.*
+!.env.example
+*.pem
+*.key

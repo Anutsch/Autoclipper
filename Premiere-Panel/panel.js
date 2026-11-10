@@ -35,7 +35,7 @@
    currentInfo=JSON.parse(await script('AC.panelState()'));
   }
   render(await api('state'),currentInfo);
- }catch(e){booted=false;$('connection').textContent='Nicht verbunden';$('status').textContent='Mac-App starten. '+e.message;$('status').className='error';}finally{busy=false;}}
+ }catch(e){booted=false;$('connection').textContent='Nicht verbunden';$('status').textContent='Autoclipper-App starten. '+e.message;$('status').className='error';}finally{busy=false;}}
  $('newProject').onclick=async function(){if(busy)return;this.disabled=true;try{localStorage.setItem('restorePanelUntil',String(Date.now()+20000));await api('new-project',{keepPanel:true});tick();}catch(e){$('status').textContent=e.message;$('status').className='error';this.disabled=false;}};
  $('jump').onclick=async function(){if(!currentInfo||busy)return;try{var r=JSON.parse(await script(bootstrap+'AC.focusSequence('+JSON.stringify(currentInfo.sequenceId)+','+JSON.stringify(currentInfo.projectPath)+')'));if(!r.ok)throw Error(r.error);}catch(e){$('status').textContent=e.message;$('status').className='error';}};
  $('retry').onclick=async function(){if(!retryJob||busy)return;try{await api('retry-import',{id:retryJob.id});tick();}catch(e){$('status').textContent=e.message;$('status').className='error';}};

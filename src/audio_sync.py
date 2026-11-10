@@ -1,6 +1,8 @@
 """Conservative local audio alignment. No guessed offsets are labelled synchronized."""
 import cmath, json, math, subprocess, tempfile, time
 from pathlib import Path
+from platform_tools import WINDOWS, ffmpeg
+import sys
 
 def fft(values,inverse=False):
  a=list(map(complex,values));n=len(a);j=0
@@ -73,7 +75,9 @@ def synchronize(sources,root,cancelled=lambda:False):
   for i,source in enumerate(sources):
    if cancelled():raise RuntimeError('Abgebrochen.')
    pb=source['playback'];output=Path(tmp)/(str(i)+'.json')
-   proc=subprocess.Popen([str(Path(root)/'src/sync/audio-envelope'),source['path'],str(pb['start']),str(pb['end']),str(output)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+   helper=Path(root)/'src/sync/audio-envelope'
+   command=[sys.executable,str(helper.with_suffix('.py')),ffmpeg()] if WINDOWS else [str(helper)]
+   proc=subprocess.Popen(command+[source['path'],str(pb['start']),str(pb['end']),str(output)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
    try:
     deadline=time.monotonic()+35
     while proc.poll() is None:

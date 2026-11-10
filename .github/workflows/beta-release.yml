@@ -1,0 +1,66 @@
+name: Autoclipper Beta Release
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/build_beta.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Beta
+          path: dist/*-macOS-*.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/build_windows_beta.py
+      - name: Check bundled executables
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem dist/*-Windows-x64.zip | Select-Object -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath smoke
+          $root = 'smoke/Autoclipper Beta'
+          $python = Get-ChildItem "$root/python" -Recurse -Filter python.exe | Select-Object -First 1
+          & $python.FullName -c "import ssl, winreg, ctypes; print('Python OK')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$root/ffmpeg/bin/ffmpeg.exe" -version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Beta
+          path: dist/*-Windows-x64.zip
+          if-no-files-found: error
+
+  draft:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Create prerelease draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          gh release create v1.0.0-beta.1 release/*.zip --target "$COMMIT" --draft --prerelease \
+            --title 'Autoclipper 1.0.0 Beta 1' \
+            --notes 'Premiere Pro ist der Hauptworkflow. Resolve Studio ist Beta, CapCut erhält die MP4s per Drag-and-drop. Das macOS-Artefakt aus CI ist noch nicht notarisiert. Vor Veröffentlichung das signierte Paket einsetzen und den ersten Clip auf beiden Plattformen prüfen.'

@@ -4,14 +4,19 @@ AC.cached=AC.cached||{};
 AC.quote=function(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n').replace(/\t/g,'\\t')+'"';};
 AC.result=function(ok,project,error){var sequenceId='';try{if(ok&&app.project.activeSequence)sequenceId=app.project.activeSequence.sequenceID;}catch(ignore){}return '{"ok":'+(ok?'true':'false')+',"project":'+AC.quote(project||'')+',"error":'+AC.quote(error||'')+',"sequenceId":'+AC.quote(sequenceId)+'}';};
 AC.projectName=function(){try{return app.project&&app.project.rootItem?app.project.name:'';}catch(e){return '';}};
+AC.sameMediaPath=function(a,b){
+ if(a===b)return true;
+ if(!a||!b||$.os.toLowerCase().indexOf('windows')<0)return false;
+ return (new File(a)).fsName.toLowerCase()===(new File(b)).fsName.toLowerCase();
+};
 AC.contains=function(item,path){
- if(item.getMediaPath && item.getMediaPath()===path)return true;
+ if(item.getMediaPath && AC.sameMediaPath(item.getMediaPath(),path))return true;
  if(item.children)for(var i=0;i<item.children.numItems;i++)if(AC.contains(item.children[i],path))return true;
  return false;
 };
 
 AC.findMedia=function(item,path){
- if(item.getMediaPath && item.getMediaPath()===path)return item;
+ if(item.getMediaPath && AC.sameMediaPath(item.getMediaPath(),path))return item;
  if(item.children)for(var i=0;i<item.children.numItems;i++){var found=AC.findMedia(item.children[i],path);if(found)return found;}
  return null;
 };
@@ -22,7 +27,7 @@ AC.isVertical30=function(seq){
 };
 AC.timelineClip=function(seq,path){
  for(var t=0;t<seq.videoTracks.numTracks;t++)for(var c=0;c<seq.videoTracks[t].clips.numItems;c++){
-  var clip=seq.videoTracks[t].clips[c];if(clip.projectItem && clip.projectItem.getMediaPath()===path)return clip;
+  var clip=seq.videoTracks[t].clips[c];if(clip.projectItem && AC.sameMediaPath(clip.projectItem.getMediaPath(),path))return clip;
  }
  return null;
 };
@@ -200,11 +205,11 @@ AC.ensureSyncTracks=function(seq,count,audioCount){
  if(seq.videoTracks.numTracks<count||seq.audioTracks.numTracks<audioCount)throw Error('Nicht genügend getrennte Video-/Audiospuren verfügbar.');
 };
 // Place the reusable follow animation on its own layer without moving source clips.
-AC.followVideoPath='';
 AC.addFollowVideo=function(seq){
- var path=AC.followVideoPath;
+ var file=new File(Folder.userData.fsName+'/Autoclipper/Follow.mov');
+ if(!file.exists)return;
+ var path=file.fsName;
  if(AC.timelineClip(seq,path))return;
- if(!(new File(path)).exists)throw Error('Follow-Video fehlt: '+path);
  var item=AC.findMedia(app.project.rootItem,path);
  if(!item){
   if(!app.project.importFiles([path],true,app.project.rootItem,false))throw Error('Follow-Video konnte nicht importiert werden.');
@@ -264,7 +269,7 @@ AC.executeSyncBatch=function(id,sources,targetProject){
   var seq=AC.queueSequence(items[0],sources[0].path,sources[0].sequenceKey,sources[0].sequenceId);
   var populated=false;
   for(t=0;t<seq.videoTracks.numTracks;t++)for(c=0;c<seq.videoTracks[t].clips.numItems;c++){
-   var seed=seq.videoTracks[t].clips[c];if(!seed.projectItem||seed.projectItem.getMediaPath()!==sources[0].path)populated=true;
+   var seed=seq.videoTracks[t].clips[c];if(!seed.projectItem||!AC.sameMediaPath(seed.projectItem.getMediaPath(),sources[0].path))populated=true;
   }
   // createNewSequenceFromClips inserts a seed clip. Remove it without rippling.
   if(!populated){
@@ -279,9 +284,9 @@ AC.executeSyncBatch=function(id,sources,targetProject){
     if(!AC.timelineClip(seq,source.path))seq.overwriteClip(item,String(offset),i,i);
     var placed=AC.timelineClip(seq,source.path);
     if(!placed||Math.abs(placed.start.seconds-offset)>1/30||Math.abs(placed.inPoint.seconds-pb.start)>1/15||Math.abs(placed.outPoint.seconds-pb.end)>1/15)throw Error('Premiere hat die synchronisierte Position nicht bestätigt.');
-    if(seq.videoTracks[i].clips.numItems!==1||seq.videoTracks[i].clips[0].projectItem.getMediaPath()!==source.path)throw Error('Ansicht liegt nicht auf ihrer eigenen Videospur.');
+    if(seq.videoTracks[i].clips.numItems!==1||!AC.sameMediaPath(seq.videoTracks[i].clips[0].projectItem.getMediaPath(),source.path))throw Error('Ansicht liegt nicht auf ihrer eigenen Videospur.');
     var audio=seq.audioTracks[i],found=false;
-    for(c=0;c<audio.clips.numItems;c++){var ac=audio.clips[c];if(ac.projectItem&&ac.projectItem.getMediaPath()===source.path&&Math.abs(ac.start.seconds-offset)<=1/30)found=true;}
+    for(c=0;c<audio.clips.numItems;c++){var ac=audio.clips[c];if(ac.projectItem&&AC.sameMediaPath(ac.projectItem.getMediaPath(),source.path)&&Math.abs(ac.start.seconds-offset)<=1/30)found=true;}
     if(!found)throw Error('Zugehörige Audiospur wurde nicht bestätigt.');
     var name=String(source.channel||'Twitch')+(source.syncVerified?'':' · Audio-Abgleich prüfen');placed.name=name;
     seq.videoTracks[i].name=String(source.channel||'Ansicht '+(i+1));seq.audioTracks[i].name=String(source.channel||'Audio '+(i+1));

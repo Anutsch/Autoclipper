@@ -1,10 +1,18 @@
 # Auto Clipper
 
-Lokales macOS-Tool für Twitch → Adobe Premiere Pro. Chrome sichert die MP4 einer frischen Clip-Vorschau; das Premiere-Panel importiert sie in eine vertikale Sequenz. Es wird kein Twitch-Clip veröffentlicht.
+Lokales Tool für Twitch → Adobe Premiere Pro auf macOS und Windows. Chrome sichert die MP4 einer frischen Clip-Vorschau; das Premiere-Panel importiert sie in eine vertikale Sequenz. Es wird kein Twitch-Clip veröffentlicht.
+
+**Downloads** · [macOS-Beta (Apple Silicon)](#eigenständige-macos-beta) · [Windows-Beta (x64)](#eigenständige-windows-beta)
+
+Die Pakete sind für [GitHub Releases](https://github.com/Anutsch/Auto-Clipper/releases)
+vorgesehen. Der erste Beta-Release ist noch nicht veröffentlicht.
+
+**Premiere Pro** ist der Hauptworkflow. **DaVinci Resolve Studio** ist Beta.
+Bei **CapCut** zeigt Autoclipper die MP4s zum Reinziehen an.
 
 ## Aktueller Stand
 
-- Eigenständige Live-Player in der Mac-App mit Pause, Lautstärke und Mute; unabhängig von Chrome.
+- Eigenständige Live-Player in der Autoclipper-App mit Pause, Lautstärke und Mute; unabhängig von Chrome.
 - Permanente Chrome-Seitenleiste, Stream-Auswahl, Warteschlange und Abbruch.
 - Import ins offene Projekt; neue Sequenz je Auswahl, 1080 × 1920 mit 30 fps.
 - Bei Mehrfachauswahl: konservativer lokaler Audio-Abgleich und separate Video-/Audiospuren. Unsichere Treffer werden markiert.
@@ -12,6 +20,60 @@ Lokales macOS-Tool für Twitch → Adobe Premiere Pro. Chrome sichert die MP4 ei
 - Moment-Score aus Chat-Reaktionen, Emotes und kanalbezogenem Chattempo; Hover-Diagramm und visuelle Alarme.
 - Manuelle/optionale automatische Chat-Neuverbindung.
 - Kleine Video-Vorschaubilder, Dateiverwaltung über den Papierkorb und löschbare Logs.
+
+## Eigenständige macOS-Beta
+
+`python3 scripts/build_beta.py` erzeugt ein ZIP in `dist/` für die
+Architektur des Macs, auf dem es gebaut wird. Die Beta bringt die
+Python-Laufzeit und Medienhelfer mit. Tester brauchen Chrome und für
+den automatischen Timeline-Import ein unterstütztes Schnittprogramm.
+
+ZIP entpacken, **Autoclipper Beta.app** starten und oben **Einrichtung**
+öffnen. Dort zeigt die App die Chrome-Verbindung, den Twitch-Stream und
+das Schnittziel. Der Knopf für Chrome öffnet den richtigen Ordner und die
+Erweiterungsseite. Die Erweiterung muss einmal entpackt geladen werden.
+Das Premiere-Panel wird nur über den Installationsknopf eingerichtet.
+Eine frühere Panel-Installation wird dabei gesichert.
+
+Die Beta erzeugt ihren Schlüssel beim ersten Start. Ihre Dateien bleiben
+unter `~/Library/Application Support/Autoclipper/Beta`. Das ZIP ist lokal
+signiert und noch nicht mit Developer ID signiert oder notarisiert.
+Für einen öffentlichen Release fehlen diese Freigabe und Tests auf
+einem zweiten Mac.
+
+## Eigenständige Windows-Beta
+
+`Autoclipper-1.0.0-beta.1-Windows-x64.zip` entpacken und
+`Autoclipper-Beta.cmd` öffnen. Python, FFmpeg und der Papierkorb-Helfer sind
+im Paket enthalten. Chrome und dein Schnittprogramm müssen installiert sein.
+Der erste vollständige Import auf einem Windows-PC steht noch aus.
+
+Die lokalen Pakete lassen sich mit `python3 scripts/build_beta.py` auf einem
+Mac und `python3 scripts/build_windows_beta.py` erstellen. Der GitHub-Workflow
+**Autoclipper Beta Release** erstellt nach beiden Builds einen Release-Entwurf.
+Für ein notarisiertes Mac-Paket benötigt der Mac eine Developer-ID im
+Schlüsselbund und ein `notarytool`-Profil. Setze dafür beim Build
+`AUTOCLIPPER_DEVELOPER_ID` und `AUTOCLIPPER_NOTARY_PROFILE`. Das macOS-Artefakt
+aus dem Standardworkflow ist nur lokal signiert.
+
+Die [Testanleitung für fünf Editoren](docs/beta-test.md) enthält die
+Nachricht für den Beta-Link und Fragen zum ersten Import.
+
+## Installation aus dem GitHub-Download
+
+Unter macOS `Setup.command` öffnen. Unter Windows `Setup.cmd` öffnen.
+Die Voraussetzungen stehen in den folgenden Abschnitten. Das Setup
+installiert Autoclipper im Benutzerordner und fragt, ob es das
+Premiere-Panel mitinstallieren soll. Ein vorhandener lokaler Schlüssel
+bleibt beim erneuten Setup erhalten.
+
+Das Setup öffnet Autoclipper und die Erweiterungsseite in Chrome. Dort einmal **Entwicklermodus**
+einschalten und unter **Entpackte Erweiterung laden** den vom Setup
+angezeigten Ordner wählen. Der Starter der App liegt im selben
+Installationsordner. Bei späteren Updates im Erweiterungsmenü einmal
+auf **Neu laden** klicken.
+
+![Vier Schritte für die einmalige Einrichtung der Chrome-Erweiterung](docs/chrome-setup.gif)
 
 ## Build auf macOS
 
@@ -35,16 +97,47 @@ Der Build liegt unter `dist/Auto Clipper/`. Der lokal erzeugte Pairing-Token ble
 
 App, Chrome-Erweiterung und Premiere-Panel müssen aus demselben Build stammen. Die App neben `src/`, `assets/` und `config.json` im Build-Ordner belassen.
 
+## Build auf Windows
+
+Benötigt Windows 10 oder 11, Chrome, Python 3 mit dem Windows-Launcher
+`py` und FFmpeg im `PATH`. In PowerShell im Repo-Ordner:
+
+```powershell
+py -3 -m pip install Send2Trash
+py -3 scripts/build.py
+```
+
+1. `dist/Auto Clipper/Autoclipper.cmd` öffnen. Die gewohnte Oberfläche
+   erscheint in einem eigenen Chrome-App-Fenster.
+2. In `chrome://extensions` den Entwicklermodus einschalten und
+   `dist/Auto Clipper/Chrome-Erweiterung` entpackt laden.
+3. Für Premiere Pro `py -3 scripts/install_panel.py` ausführen und
+   das Panel unter **Fenster → Erweiterungen → Autoclipper** öffnen.
+   Falls Premiere das unsignierte CEP-Panel ausblendet, ist
+   [Adobes CEP-Entwicklereinstellung](https://github.com/Adobe-CEP/CEP-Resources/blob/master/CEP_12.x/Documentation/CEP%2012%20HTML%20Extension%20Cookbook.md)
+   für die installierte CEP-Version erforderlich.
+
+FFmpeg liefert die Vorschaubilder und Audiodaten für den lokalen Abgleich.
+Der Build erzeugt einen eigenen lokalen Verbindungsschlüssel. Der echte
+Import in die Windows-Schnittprogramme ist noch nicht Ende zu Ende geprüft.
+
 ## Struktur
 
 | Ordner | Inhalt |
 | --- | --- |
-| `src/` | Python-Dienst, Mac-App, Oberfläche und native Medien-Helfer |
+| `src/` | Python-Dienst, App-Oberfläche und Medien-Helfer |
 | `Chrome-Erweiterung/` | Twitch-Erkennung, Clip-Steuerung und Chat-Analyse |
 | `Premiere-Panel/` | CEP-Oberfläche und ExtendScript-Import |
 | `assets/`, `packaging/` | Logo und App-Paketvorlage |
-| `Design-Vorschlag-*` | Frühere statische Designentwürfe |
-| `docs/` | Technische Hinweise; die ältere Anleitung beschreibt teilweise frühere Versionen |
+| `docs/` | Technische Hinweise zur Audio-Synchronisation und zum Moment-Score |
+
+## Optionales Follow-Overlay in Premiere
+
+Für ein eigenes Follow-Overlay eine MOV-Datei als
+`~/Library/Application Support/Autoclipper/Follow.mov` ablegen.
+Unter Windows ist der entsprechende Pfad `%APPDATA%\Autoclipper\Follow.mov`.
+Autoclipper legt sie auf eine eigene Videospur unter dem Titel.
+Ohne diese Datei läuft der Import regulär weiter.
 
 ## Grenzen
 
@@ -53,3 +146,17 @@ Clippen verwendet weiterhin die Twitch-Clip-Vorschau des verbundenen Chrome-Tabs
 Die automatische Transkription mit Ein-Wort-Untertiteln und Transkript-Stil ist **noch nicht implementiert**. Der Titel-Zusatz für synchronisierte Gruppen ist vorlagenbasiert eingebaut; ein Premiere-Live-Test steht noch aus.
 
 Clips, Premiere-Projekte, Laufzeitdaten, Logs, Pairing-Tokens und kompilierte App-Bundles werden nicht versioniert. Der bestehende Desktop-Ordner wird vom Build nicht verändert.
+
+### Schnittziel automatisch erkennen
+
+In der App lässt sich das Schnittziel oben direkt wählen. Die Einstellung gilt für neue Aufträge.
+Im Modus **Auto** wählt Autoclipper beim Start eines Clip-Auftrags das laufende Schnittprogramm.
+Sind mehrere geöffnet, gilt die Reihenfolge Premiere Pro, DaVinci Resolve, CapCut.
+Ist keines geöffnet, bleibt der automatische Premiere-Start der Standard.
+
+- **DaVinci Resolve Studio:** Unter Preferences → System → General die Option
+  „External scripting using“ auf „Local“ setzen und ein Projekt öffnen.
+  Autoclipper legt die Clips in einer neuen vertikalen Timeline (1080 × 1920,
+  30 fps) ab. Mehrere Ansichten liegen hintereinander. Audio-Synchronisation,
+  Premiere-Titelvorlage und Follow-Overlay gehören zum Premiere-Workflow.
+- **CapCut:** Autoclipper zeigt die MP4s im Finder oder Windows-Explorer. Von dort lassen sie sich in CapCut ziehen.

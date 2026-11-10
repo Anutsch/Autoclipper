@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Autoclipper – Twitch → Premiere",
   "version": "2.1.0",
-  "description": "Clip-Steuerung für Twitch: Ansichten auswählen, frische MP4-Vorschau herunterladen und in Premiere einfügen. Status und Speicher in der Mac-App.",
+  "description": "Clip-Steuerung für Twitch: Ansichten auswählen, frische MP4-Vorschau herunterladen und in Premiere einfügen. Status und Speicher in der Autoclipper-App.",
   "permissions": [
     "tabs",
     "scripting",

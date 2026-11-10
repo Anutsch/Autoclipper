@@ -5,23 +5,20 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.parse import urlsplit, parse_qs
 from audio_sync import synchronize
+from editors import NAMES, destination, handoff, running_editors
+from platform_tools import acquire_lock, install_panel, launch_premiere, open_chrome_setup, open_folder, panel_directory, reveal_media, show_app, thumbnail_command, trash_file
 ROOT=Path(__file__).resolve().parent.parent
-CONFIG=json.loads((ROOT/'config.json').read_text())
+CONFIG=json.loads((ROOT/'config.json').read_text(encoding='utf-8'))
 TOKEN=CONFIG['token']; PORT=CONFIG['port']
 LOCK=threading.RLock()
 TERMINAL={'done','error'}
 
 def atomic_json(path,data):
- temp=path.with_suffix('.tmp');temp.write_text(json.dumps(data,ensure_ascii=False,indent=2));temp.replace(path)
+ temp=path.with_suffix('.tmp');temp.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8');temp.replace(path)
 
 def allowed_media(url):
  u=urlsplit(url);host=(u.hostname or '').lower()
  return u.scheme=='https' and u.port in (None,443) and not u.username and any(host==h or host.endswith('.'+h) for h in ('twitch.tv','ttvnw.net','twitchcdn.net','d1ndex63qxojbr.cloudfront.net'))
-
-def premiere_running():
- result=subprocess.run(['/bin/ps','-axo','comm='],capture_output=True,text=True,timeout=5)
- if result.returncode:raise RuntimeError('Premiere-Status konnte nicht gelesen werden.')
- return any(line.strip().endswith('/Contents/MacOS/Adobe Premiere Pro 2026') for line in result.stdout.splitlines())
 
 class SafeRedirect(HTTPRedirectHandler):
  def redirect_request(self,req,fp,code,msg,headers,newurl):
@@ -32,7 +29,7 @@ class Store:
  def __init__(self,root):
   self.root=root;self.file=root/'state.json';self.browser={};self.browser_time=0;self.premiere={};self.premiere_time=0;self.selection=[];self.browser_commands=[];self.chat_reload=None
   self.data={'counter':0,'jobs':[]}
-  if self.file.exists(): self.data=json.loads(self.file.read_text())
+  if self.file.exists(): self.data=json.loads(self.file.read_text(encoding='utf-8'))
   for j in self.data['jobs']:
    if j['status'] not in TERMINAL:
     j.update(status='error',message='Anwendung wurde beendet. Download ggf. vorhanden; erneut starten oder MP4 erneut importieren.')
@@ -69,7 +66,7 @@ class Store:
    failed=[c for c in children if c['status']=='error']
    if failed:self.update(parent,status='error',message='Nicht alle Ansichten konnten geladen werden. Bereits geladene MP4s bleiben im Clips-Ordner. '+ '; '.join(c['message'] for c in failed))
    elif parent.get('syncMode'):self.update(parent,status='sync_wait',message='Wartet auf die übrigen Ansichten …')
-   else:self.update(parent,status='import_wait',path=json.dumps({'sources':children,'targetProject':parent.get('targetProject','')},ensure_ascii=True),message=str(len(children))+' Ansichten geladen. Wartet auf Premiere …')
+   else:self.update(parent,status='import_wait',path=json.dumps({'sources':children,'targetProject':parent.get('targetProject','')},ensure_ascii=True),message=str(len(children))+' Ansichten geladen · '+NAMES[parent.get('editor','premiere')])
  def active_paths(self):
   paths=set()
   for j in self.data['jobs']:
@@ -104,9 +101,9 @@ class Store:
   removed=[];errors=[];total=0
   for p in paths:
    size=p.stat().st_size
-   try:result=subprocess.run([str(self.root/'src'/'trash-file'),str(p)],capture_output=True,text=True,timeout=20)
-   except (OSError,subprocess.TimeoutExpired):errors.append(p.name+': Verschieben fehlgeschlagen.');continue
-   if result.returncode or p.exists():errors.append(p.name+': Papierkorb nicht verfügbar.');continue
+   try:trashed=trash_file(self.root,p)
+   except (OSError,ImportError,subprocess.TimeoutExpired):errors.append(p.name+': Verschieben fehlgeschlagen.');continue
+   if not trashed or p.exists():errors.append(p.name+': Papierkorb nicht verfügbar.');continue
    removed.append(p.name);total+=size
    (self.root/'.thumbnails'/(hashlib.sha256(p.name.encode()).hexdigest()+'.jpg')).unlink(missing_ok=True)
    for j in self.data['jobs']:
@@ -122,17 +119,33 @@ class Store:
    except OSError:errors.append('Technisches Log konnte nicht geleert werden.')
   self.save()
   return dict(removed=removed,bytes=total,historyCleared=count,logsCleared=logs_cleared,errors=errors)
+ def saved_media(self,job):
+  sources=job.get('sources',[]) if job['kind']=='batch' else [job]
+  folder=(self.root/'Clips').resolve()
+  paths=[]
+  for source in sources:
+   if not source.get('path') or source.get('mediaDeleted'):continue
+   path=Path(source['path'])
+   if path.suffix=='.mp4' and not path.is_symlink() and path.is_file() and path.resolve().parent==folder:paths.append(str(path))
+  return paths
  def retryable(self,j):
   if j['status']!='error':return False
   if j['kind']=='batch':
    sources=j.get('sources',[])
    return bool(sources) and all(c.get('path') and not c.get('mediaDeleted') and Path(c['path']).is_file() for c in sources)
   return j['kind']=='clip' and bool(j.get('path')) and not j.get('mediaDeleted') and Path(j['path']).is_file()
+ def editor(self):
+  preference=self.data.get('preferences',{}).get('editor','auto')
+  return destination() if preference=='auto' or preference not in NAMES else preference
  def view(self):
   with LOCK:
    recent={j['id'] for j in self.data['jobs'][-30:]}
-   jobs=[dict(j,retryable=self.retryable(j)) for j in self.data['jobs'] if j['id'] in recent or j['status'] not in TERMINAL]
-   return dict(preferences=self.data.get('preferences',{}),chatReload=self.chat_reload,browser=self.browser if time.time()-self.browser_time<15 else {},premiere=self.premiere if time.time()-self.premiere_time<8 else {},jobs=jobs,selection=self.selection,root=str(self.root),storage=self.storage())
+   jobs=[dict(j,retryable=self.retryable(j),hasMedia=bool(self.saved_media(j))) for j in self.data['jobs'] if j['id'] in recent or j['status'] not in TERMINAL]
+   try:
+    installed=(panel_directory()/'panel.js').read_bytes()==(self.root/'Premiere-Panel/panel.js').read_bytes()
+   except OSError:
+    installed=False
+   return dict(panelInstalled=installed,editor=self.editor(),runningEditors=list(running_editors()),preferences=self.data.get('preferences',{}),chatReload=self.chat_reload,browser=self.browser if time.time()-self.browser_time<15 else {},premiere=self.premiere if time.time()-self.premiere_time<8 else {},jobs=jobs,selection=self.selection,root=str(self.root),storage=self.storage())
 
 STORE=None
 
@@ -212,14 +225,20 @@ def download(j,url):
 
 def queue_loop():
  while True:
-  job=None;child=None;leader=None
+  job=None;child=None;leader=None;external=None
   with LOCK:
    for member in STORE.data['jobs']:
     if member['status']=='sync_follow':
      owner=next((j for j in STORE.data['jobs'] if member['id'] in j.get('syncMemberIds',[])),None)
      if owner and owner['status'] in TERMINAL:STORE.update(member,status=owner['status'],message=owner['message'],syncWarning=owner.get('syncWarning',''))
    first=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
-   if first:
+   ready=next((j for j in STORE.data['jobs'] if j['status']=='import_wait'
+               and j.get('editor','premiere')!='premiere'
+               and (not j.get('queueEntry') or j is first)),None)
+   if ready:
+    external=ready
+    STORE.update(ready,status='executing',message=NAMES[ready['editor']]+' · MP4s werden übergeben …')
+   elif first:
     group=[j for j in STORE.data['jobs'] if j.get('captureGroup')==first.get('captureGroup')] if first.get('syncMode') else [first]
     candidate=next((j for j in group if j['status']=='download_wait'),None)
     if candidate:
@@ -231,9 +250,20 @@ def queue_loop():
       leader=members[0];sources=[copy.deepcopy(c) for j in members for c in j['sources'] if c['status']=='ready']
       for source in sources:source['parentId']=leader['id']
       leader['sources']=sources;leader['syncMemberIds']=[j['id'] for j in members]
-      for member in members[1:]:STORE.update(member,status='sync_follow',message='Gemeinsame Audio-Synchronisation …')
-      STORE.update(leader,status='synchronizing',message='Tonspuren werden zeitlich abgeglichen …')
-  if job:
+      for member in members[1:]:STORE.update(member,status='sync_follow',message='Wartet auf gemeinsame Übergabe …')
+      if leader.get('editor','premiere')=='premiere':
+       STORE.update(leader,status='synchronizing',message='Tonspuren werden zeitlich abgeglichen …')
+      else:
+       STORE.update(leader,status='import_wait',message='MP4s sind bereit.')
+       leader=None
+  if external:
+   try:
+    paths=[source['path'] for source in external['sources']] if external['kind']=='batch' else [external['path']]
+    message=handoff(external['editor'],paths,external.get('editorImportId',external['id']))
+    STORE.update(external,status='done',message=message)
+   except Exception as error:
+    STORE.update(external,status='error',message=str(error)+' MP4s bleiben gespeichert.')
+  elif job:
    download(child,child['url'])
    with LOCK:
     if job['status'] not in TERMINAL:STORE.finish_batch(job['id'])
@@ -273,7 +303,7 @@ class Handler(BaseHTTPRequestHandler):
   if self.path=='/health':return self.reply({'app':'Autoclipper','version':1})
   if self.path=='/':
    # The app token is never exposed to an unrelated web origin.
-   if self.headers.get('Origin') or self.headers.get('Sec-Fetch-Site') in ('cross-site','same-site'):
+   if self.headers.get('Host')!=f'127.0.0.1:{PORT}' or self.headers.get('Origin') or self.headers.get('Sec-Fetch-Site') in ('cross-site','same-site'):
     return self.reply({'error':'Direkt in Autoclipper öffnen.'},403)
    body=(ROOT/'src'/'index.html').read_bytes();self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Security-Policy',"default-src 'self'; img-src 'self' blob: https://static-cdn.jtvnw.net https://*.twitchcdn.net; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-src https://player.twitch.tv; frame-ancestors 'none'");self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
   if not self.auth():return self.reply({'error':'Nicht autorisiert'},403)
@@ -285,7 +315,7 @@ class Handler(BaseHTTPRequestHandler):
     if not output.exists() or output.stat().st_mtime<source.stat().st_mtime:
      temp=output.with_name(output.stem+'-'+uuid.uuid4().hex+'.jpg')
      try:
-      result=subprocess.run([str(ROOT/'src'/'video-thumbnail'),str(source),str(temp)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8)
+      result=subprocess.run(thumbnail_command(ROOT,source,temp),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8)
       if result.returncode or not temp.is_file():raise ValueError('Keine Vorschau verfügbar.')
       temp.replace(output)
      finally:temp.unlink(missing_ok=True)
@@ -308,6 +338,12 @@ class Handler(BaseHTTPRequestHandler):
    if not isinstance(ids,list) or len(ids)>8 or any(type(i) is not int for i in ids):raise ValueError('Ungueltige Tab-Auswahl.')
    valid={t['id'] for t in STORE.browser.get('tabs',[])}
    STORE.selection=list(dict.fromkeys(i for i in ids if i in valid));return {'ok':True}
+  if path=='/api/editor':
+   editor=d.get('editor')
+   if not isinstance(editor,str) or editor not in ('auto',*NAMES):raise ValueError('Ungültiges Schnittziel.')
+   STORE.data.setdefault('preferences',{})['editor']=editor;STORE.save();return {'ok':True}
+  if path=='/api/open-premiere':
+   launch_premiere();return {'ok':True}
   if path=='/api/preferences':
    value=d.get('autoChatReconnect')
    if type(value) is not bool:raise ValueError('Ungültige Einstellung.')
@@ -328,8 +364,17 @@ class Handler(BaseHTTPRequestHandler):
    if type(ident) is not int or not any(t['id']==ident for t in STORE.browser.get('tabs',[])):raise ValueError('Stream-Tab nicht mehr geöffnet.')
    if len(STORE.browser_commands)>=8:raise ValueError('Chrome verarbeitet noch deine Anfrage.')
    STORE.browser_commands.append({'tabId':ident});return {'ok':True}
+  if path=='/api/chrome-setup':
+   open_chrome_setup(ROOT/'Chrome-Erweiterung');return {'ok':True}
+  if path=='/api/install-panel':
+   install_panel(ROOT/'Premiere-Panel');return {'ok':True}
+  if path=='/api/reveal-clip':
+   job=next((job for job in STORE.data['jobs'] if job['id']==d.get('id')),None)
+   paths=STORE.saved_media(job) if job else []
+   if not paths:raise ValueError('Keine gespeicherte MP4 vorhanden.')
+   reveal_media(paths);return {'ok':True}
   if path=='/api/show-app':
-   subprocess.Popen(['/usr/bin/open',str(ROOT/'Autoclipper.app')]);return {'ok':True}
+   show_app(ROOT,PORT);return {'ok':True}
   if path=='/api/cleanup':return STORE.cleanup(d)
   if path=='/api/browser':
    for stalled in STORE.data['jobs']:
@@ -382,12 +427,15 @@ class Handler(BaseHTTPRequestHandler):
     if check.get('allowed') is not True:raise ValueError(tab.get('title','Twitch')+': '+str(check.get('reason','Clippen derzeit nicht möglich.')))
    stamp=d.get('requestedAt')
    if not isinstance(stamp,(int,float)) or abs(time.time()*1000-stamp)>10000:raise ValueError('Klickzeitpunkt ist veraltet. Bitte erneut versuchen.')
+   editor=STORE.editor()
    connected=time.time()-STORE.premiere_time<8
-   running=connected or premiere_running()
+   running=connected or (editor=='premiere' and 'premiere' in running_editors())
    target=STORE.premiere.get('project','') if connected else ''
    bootstrap=None
    pending_bootstrap=next((j for j in STORE.data['jobs'] if j.get('automatic') and j['status'] not in TERMINAL),None)
-   if pending_bootstrap:
+   if editor!='premiere':
+    target=''
+   elif pending_bootstrap:
     bootstrap=pending_bootstrap;target=Path(bootstrap['path']).name
    elif not running or not connected or not target:
     project=STORE.project_path()
@@ -395,13 +443,13 @@ class Handler(BaseHTTPRequestHandler):
     STORE.update(bootstrap,status='premiere_wait',message='Premiere wird gestartet und das Projekt vorbereitet …')
     if not running:
      target=Path(project).name;STORE.premiere={};STORE.premiere_time=0
-    try:subprocess.Popen(['/usr/bin/open','-b','com.adobe.PremierePro.26'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    try:launch_premiere()
     except OSError:
      STORE.update(bootstrap,status='error',message='Premiere konnte nicht gestartet werden.');raise ValueError('Premiere konnte nicht gestartet werden.')
    group=uuid.uuid4().hex;jobs=[]
    for tab in chosen:
     child=dict(id=uuid.uuid4().hex,kind='clip',status='capturing',tabId=tab['id'],channel=tab.get('title','Twitch'),sequenceKey=group)
-    job=STORE.add('batch',queueEntry=True,captureGroup=group,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
+    job=STORE.add('batch',queueEntry=True,captureGroup=group,editor=editor,syncMode=len(chosen)>1,tabIds=[tab['id']],tabs=[tab],sources=[child],requestedAt=stamp,targetProject=target,bootstrapId=bootstrap['id'] if bootstrap else None,channel=tab.get('title','Twitch'))
     child['parentId']=job['id'];jobs.append(job)
    STORE.save()
    return dict(jobs[0],captureJobs=jobs)
@@ -472,8 +520,8 @@ class Handler(BaseHTTPRequestHandler):
    if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Ein neues Projekt wartet bereits auf Premiere.')
    project=STORE.project_path();j=STORE.add('project',path=project,keepPanel=d.get('keepPanel') is True)
    STORE.update(j,status='premiere_wait',message=Path(project).stem+' wartet auf Premiere / Autoclipper-Panel …')
-   result=subprocess.run(['/usr/bin/open','-b','com.adobe.PremierePro.26'],capture_output=True,timeout=10)
-   if result.returncode:STORE.update(j,status='error',message='Premiere konnte nicht gestartet werden.')
+   try:launch_premiere()
+   except OSError as error:STORE.update(j,status='error',message=str(error))
    return j
   if path in ('/api/cancel','/api/cancel-all'):
    jobs=[j for j in STORE.data['jobs'] if j['status'] not in TERMINAL and (path=='/api/cancel-all' or j['id']==d.get('id'))]
@@ -483,7 +531,7 @@ class Handler(BaseHTTPRequestHandler):
    if sync_groups:jobs=[j for j in STORE.data['jobs'] if j['status'] not in TERMINAL and (j in jobs or j.get('captureGroup') in sync_groups)]
    cancelled=[]
    for j in jobs:
-    if j['status']=='executing':STORE.update(j,cancelRequested=True,message='Abbruch angefordert. Der aktuelle Premiere-Schritt wird noch sicher beendet.');continue
+    if j['status']=='executing':STORE.update(j,cancelRequested=True,message='Abbruch angefordert. Der aktuelle Importschritt wird noch beendet.');continue
     for child in j.get('sources',[]):
      if child.get('status') not in ('ready','error'):child.update(cancelRequested=True,status='error',message='Abgebrochen.')
     STORE.update(j,cancelRequested=True,cancelled=True,status='error',message='Abgebrochen. Fertige MP4s bleiben erhalten.');cancelled.append(j['id'])
@@ -492,31 +540,33 @@ class Handler(BaseHTTPRequestHandler):
    old=next((j for j in STORE.data['jobs'] if j['id']==d.get('id')),None)
    if old is None:raise ValueError('Auftrag nicht mehr vorhanden.')
    if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Bitte laufenden Auftrag zuerst abschliessen.')
+   editor=STORE.editor()
+   import_id=old.get('editorImportId',old['id'])
    if old['kind']=='batch':
     if not STORE.retryable(old):raise ValueError('Nicht alle MP4-Dateien sind noch vorhanden. Bitte in Chrome erneut clippen.')
     import copy
     sources=copy.deepcopy(old['sources'])
-    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=old.get('targetProject',''),retryOf=old['id'])
+    j=STORE.add('batch',sources=sources,channel=old.get('channel','Twitch'),targetProject=STORE.premiere.get('project','') if editor=='premiere' and time.time()-STORE.premiere_time<8 else '',retryOf=old['id'],editor=editor,editorImportId=import_id)
     for source in sources:source['parentId']=j['id']
-    STORE.update(j,status='import_wait',path=json.dumps({'sources':sources,'targetProject':j['targetProject']},ensure_ascii=True),message='Gespeicherte MP4s warten auf erneuten Premiere-Import …')
+    STORE.update(j,status='import_wait',path=json.dumps({'sources':sources,'targetProject':j['targetProject']},ensure_ascii=True),message='Gespeicherte MP4s · '+NAMES[editor])
     return j
    if old['status'] not in TERMINAL or not old.get('path') or not Path(old['path']).is_file() or Path(old['path']).suffix!='.mp4':raise ValueError('Keine heruntergeladene MP4 zum Importieren.')
-   j=STORE.add('clip',path=old['path']);STORE.update(j,status='import_wait',message='Wartet auf Premiere …');return j
+   j=STORE.add('clip',path=old['path'],editor=editor,editorImportId=import_id);STORE.update(j,status='import_wait',message='Wartet auf '+NAMES[editor]+' …');return j
   if path=='/api/premiere':
    STORE.premiere={'connected':True,'project':str(d.get('project','')),'sequence':str(d.get('sequence','')),'sequenceId':str(d.get('sequenceId','')),'projectPath':str(d.get('projectPath','')),'width':d.get('width'),'height':d.get('height'),'fps':d.get('fps')};STORE.premiere_time=time.time()
    # No lease expiry: uncertain script execution must never create a second project.
-   job=next((j for j in STORE.data['jobs'] if j['status']=='executing'),None)
+   job=next((j for j in STORE.data['jobs'] if j['status']=='executing' and j.get('editor','premiere')=='premiere'),None)
    if not job:
     for pending in STORE.data['jobs']:
      if pending['status']=='import_wait' and pending.get('bootstrapError'):STORE.update(pending,status='error',message=pending['bootstrapError'])
     first_queue=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
-    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested')),None)
+    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested')),None)
     if job:STORE.update(job,status='executing',message='Premiere erstellt das Projekt …' if job['kind']=='project' else 'Premiere importiert die MP4 …')
    return {'job':job}
   if path=='/api/premiere-result':
    j=next((j for j in STORE.data['jobs'] if j['id']==d['id']),None)
    if j is None:return {'ok':True}
-   if j['status']!='executing':return {'ok':True}
+   if j['status']!='executing' or j.get('editor','premiere')!='premiere':return {'ok':True}
    if d.get('ok') and j['kind']=='title':STORE.update(j,status='done',message='Titel auf oberster Videospur ergänzt.')
    elif d.get('ok'):STORE.update(j,status='done',message='Sequenznamen aktualisiert.' if j['kind']=='rename' else ('Projekt erstellt: '+Path(j['path']).stem if j['kind'] in ('project','ensure') else 'Ansichten in Premiere eingefuegt: '+str(d.get('project',''))))
    else:STORE.update(j,status='error',message=str(d.get('error','Premiere-Fehler')))
@@ -543,14 +593,13 @@ class Handler(BaseHTTPRequestHandler):
     STORE.save()
    return {'ok':True}
   if path=='/api/open-folder':
-   subprocess.Popen(['/usr/bin/open',str(ROOT)]);return {'ok':True}
+   open_folder(ROOT);return {'ok':True}
   raise ValueError('Unbekannte Aktion')
 
 if __name__=='__main__':
- import fcntl
- lockfile=(ROOT/'.server.lock').open('w')
- try:fcntl.flock(lockfile,fcntl.LOCK_EX|fcntl.LOCK_NB)
- except BlockingIOError:raise SystemExit(0)
+ lockfile=(ROOT/'.server.lock').open('a+b')
+ try:acquire_lock(lockfile)
+ except OSError:raise SystemExit(0)
  STORE=Store(ROOT)
  threading.Thread(target=queue_loop,daemon=True).start()
  server=ThreadingHTTPServer(('127.0.0.1',PORT),Handler)

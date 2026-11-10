@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Install the locally built CEP panel, backing up an existing installation."""
 from pathlib import Path
-import shutil,time
-root=Path(__file__).resolve().parents[1]
-source=root/'dist/Auto Clipper/Premiere-Panel'
-target=Path.home()/'Library/Application Support/Adobe/CEP/extensions/de.autoclipper.premiere'
-if not source.is_dir():raise SystemExit('Zuerst python3 scripts/build.py ausführen.')
-if target.exists():
- backup=root/'.build'/('premiere-panel-backup-'+time.strftime('%Y%m%d-%H%M%S'));backup.parent.mkdir(parents=True,exist_ok=True);shutil.copytree(target,backup)
-shutil.copytree(source,target,dirs_exist_ok=True)
-print('Premiere-Panel installiert:',target)
-print('Das Panel in Premiere neu öffnen. Bei erstmaliger Installation ist ggf. ein Premiere-Neustart erforderlich.')
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+from platform_tools import install_panel
+
+
+if __name__ == '__main__':
+    try:
+        target = install_panel(ROOT / 'dist/Auto Clipper/Premiere-Panel')
+        print('Premiere-Panel installiert:', target)
+    except (OSError, ValueError) as error:
+        sys.exit(str(error))
