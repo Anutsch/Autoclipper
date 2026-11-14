@@ -352,8 +352,9 @@ class Handler(BaseHTTPRequestHandler):
  def auth(self):return secrets.compare_digest(self.headers.get('X-Autoclipper-Token',''),TOKEN)
  def do_OPTIONS(self):self.send_response(204);self.headers_out();self.end_headers()
  def do_GET(self):
-  if self.path=='/assets/logo.png':
-   body=(ROOT/'assets'/'logo.png').read_bytes();self.send_response(200);self.send_header('Content-Type','image/png');self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
+  if self.path in ('/assets/logo.png','/assets/Autoclipper.ico','/favicon.ico'):
+   icon=self.path!='/assets/logo.png'
+   body=(ROOT/'assets'/('Autoclipper.ico' if icon else 'logo.png')).read_bytes();self.send_response(200);self.send_header('Content-Type','image/x-icon' if icon else 'image/png');self.send_header('Content-Length',str(len(body)));self.end_headers();return self.wfile.write(body)
   if self.path in ('/i18n.js','/clip-design.js','/camera-review.js','/setup-flow.js','/controls.js'):
    body=(ROOT/'src'/self.path[1:]).read_bytes()
    self.send_response(200);self.send_header('Content-Type','text/javascript; charset=utf-8')

@@ -68,6 +68,24 @@ def show_app(root, port):
     subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def create_windows_shortcut(root):
+    """Create a branded launcher beside the local Windows build."""
+    root = Path(root).resolve()
+    script = '''$root = $env:AUTOCLIPPER_SHORTCUT_ROOT
+$shell = New-Object -ComObject WScript.Shell
+$link = $shell.CreateShortcut((Join-Path $root 'Autoclipper.lnk'))
+$link.TargetPath = Join-Path $root 'Autoclipper.cmd'
+$link.WorkingDirectory = $root
+$link.IconLocation = (Join-Path $root 'assets/Autoclipper.ico') + ',0'
+$link.Description = 'Autoclipper'
+$link.WindowStyle = 7
+$link.Save()
+'''
+    subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
+                   env=dict(os.environ, AUTOCLIPPER_SHORTCUT_ROOT=str(root)), check=True,
+                   creationflags=subprocess.CREATE_NO_WINDOW, capture_output=True)
+
+
 def open_folder(folder):
     if WINDOWS:
         os.startfile(str(folder))

@@ -4,7 +4,7 @@ import json, os, secrets, shutil, subprocess, sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
-from platform_tools import WINDOWS, chrome_executable, ffmpeg, panel_directory
+from platform_tools import WINDOWS, chrome_executable, create_windows_shortcut, ffmpeg, panel_directory
 OUT=ROOT/'dist'/'Auto Clipper'
 
 def run(*args):
@@ -38,6 +38,7 @@ def main(destination=None):
  shutil.copy2(out/'src/clip-design.js',out/'Premiere-Panel/clip-design.js')
  if WINDOWS:
   shutil.copy2(ROOT/'packaging/Autoclipper.cmd',out/'Autoclipper.cmd')
+  create_windows_shortcut(out)
  else:
   app=out/'Autoclipper.app'/'Contents';(app/'MacOS').mkdir(parents=True,exist_ok=True);(app/'Resources').mkdir(exist_ok=True)
   shutil.copy2(ROOT/'packaging/Info.plist',app/'Info.plist');shutil.copy2(ROOT/'packaging/Autoclipper.icns',app/'Resources/Autoclipper.icns')
