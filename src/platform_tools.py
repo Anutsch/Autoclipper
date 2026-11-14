@@ -36,6 +36,8 @@ def launch_premiere(project=None):
         return
     from editors import running_editors
     running = running_editors().get('premiere')
+    if running and project is None:
+        return
     installed = sorted(
         (path for base in program_files()
          for path in (base / 'Adobe').glob('Adobe Premiere Pro */Adobe Premiere Pro.exe')),

@@ -8,7 +8,7 @@ from audio_sync import synchronize
 from clip_design import ASSET_TYPES, MAX_REQUEST, prepare_design, save_asset
 from face_camera import inspect_camera, make_camera, validate_crop
 from editors import NAMES, destination, handoff, running_editors
-from platform_tools import acquire_lock, install_panel, launch_premiere, open_chrome_setup, open_folder, panel_directory, reveal_media, show_app, thumbnail_command, trash_file
+from platform_tools import WINDOWS, acquire_lock, install_panel, launch_premiere, open_chrome_setup, open_folder, panel_directory, reveal_media, show_app, thumbnail_command, trash_file
 ROOT=Path(__file__).resolve().parent.parent
 CONFIG=json.loads((ROOT/'config.json').read_text(encoding='utf-8'))
 TOKEN=CONFIG['token']; PORT=CONFIG['port']
@@ -149,6 +149,13 @@ class Store:
      continue
     if job['status']=='import_wait' and job.get('awaitingDesign'):
      job['message']='Wartet auf Gestaltung in Autoclipper.'
+    elif job['status']=='import_wait' and job.get('editor','premiere')=='premiere':
+     if time.time()-self.premiere_time>=8:
+      job['message']='In Premiere das vorhandene Projekt und Fenster > Erweiterungen > Autoclipper oeffnen. Die MP4 ist gespeichert.'
+     elif not self.premiere.get('project'):
+      job['message']='Bitte ein Projekt in Premiere oeffnen. Der Speicherort bleibt unveraendert.'
+    elif job['status']=='executing' and job.get('editor','premiere')=='premiere' and time.time()-self.premiere_time>=15:
+     job['message']='Premiere antwortet nicht. Importstatus unklar; keine automatische Wiederholung. Premiere und das Autoclipper-Panel pruefen.'
    try:
     installed=(panel_directory()/'panel.js').read_bytes()==(self.root/'Premiere-Panel/panel.js').read_bytes()
    except OSError:
@@ -541,6 +548,12 @@ class Handler(BaseHTTPRequestHandler):
    pending_bootstrap=next((j for j in STORE.data['jobs'] if j.get('automatic') and j['status'] not in TERMINAL),None)
    if editor!='premiere':
     target=''
+   elif WINDOWS:
+    # A missing panel heartbeat says nothing about the user's open project.
+    # Never create or relocate a project as a side effect of capturing a clip.
+    if not running:
+     try:launch_premiere()
+     except OSError as error:raise ValueError(str(error))
    elif pending_bootstrap:
     bootstrap=pending_bootstrap;target=Path(bootstrap['path']).name
    elif not running or not connected or not target:
@@ -658,8 +671,8 @@ class Handler(BaseHTTPRequestHandler):
    STORE.save();return {'ok':True}
   if path=='/api/new-project':
    if any(j['status'] not in TERMINAL for j in STORE.data['jobs']):raise ValueError('Ein neues Projekt wartet bereits auf Premiere.')
-   project=STORE.project_path();j=STORE.add('project',path=project,keepPanel=d.get('keepPanel') is True)
-   STORE.update(j,status='premiere_wait',message=Path(project).stem+' wartet auf Premiere / Autoclipper-Panel …')
+   project='' if WINDOWS else STORE.project_path();j=STORE.add('project',path=project,keepPanel=d.get('keepPanel') is True)
+   STORE.update(j,status='premiere_wait',message='Speicherort in Premiere auswählen …' if WINDOWS else Path(project).stem+' wartet auf Premiere / Autoclipper-Panel …')
    try:launch_premiere()
    except OSError as error:STORE.update(j,status='error',message=str(error))
    return j
@@ -696,11 +709,12 @@ class Handler(BaseHTTPRequestHandler):
    STORE.premiere={'connected':True,'project':str(d.get('project','')),'sequence':str(d.get('sequence','')),'sequenceId':str(d.get('sequenceId','')),'projectPath':str(d.get('projectPath','')),'width':d.get('width'),'height':d.get('height'),'fps':d.get('fps')};STORE.premiere_time=time.time()
    # No lease expiry: uncertain script execution must never create a second project.
    job=next((j for j in STORE.data['jobs'] if j['status']=='executing' and j.get('editor','premiere')=='premiere'),None)
+   if job:return {'job':None}
    if not job:
     for pending in STORE.data['jobs']:
      if pending['status']=='import_wait' and pending.get('bootstrapError'):STORE.update(pending,status='error',message=pending['bootstrapError'])
     first_queue=next((j for j in STORE.data['jobs'] if j.get('queueEntry') and j['status'] not in TERMINAL),None)
-    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested') and not j.get('awaitingDesign') and j.get('cameraState') not in ('analyse','render','review')),None)
+    job=next((j for j in STORE.data['jobs'] if j['status'] in ('premiere_wait','import_wait') and j.get('editor','premiere')=='premiere' and (j['kind'] not in ('batch','clip') or bool(STORE.premiere['project'])) and (not j.get('queueEntry') or j is first_queue) and not j.get('cancelRequested') and not j.get('awaitingDesign') and j.get('cameraState') not in ('analyse','render','review')),None)
     if job:STORE.update(job,status='executing',message='Premiere erstellt das Projekt …' if job['kind']=='project' else 'Premiere importiert die MP4 …')
    return {'job':job}
   if path=='/api/premiere-result':

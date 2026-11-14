@@ -107,12 +107,18 @@ AC.execute=function(id,kind,path,design){
    }
   }else if(kind==='ensure'){
    if(!app.isDocumentOpen()){
+    if($.os.toLowerCase().indexOf('windows')>=0)throw Error('Bitte das vorhandene Projekt in Premiere oeffnen. Der Speicherort wird nicht veraendert.');
     if(new File(path).exists)throw Error('Die vorgesehene Projektdatei existiert bereits.');
     if(!app.newProject(path))throw Error('Automatische Projekterstellung fehlgeschlagen.');
     if(!app.project||new File(app.project.path).fsName!==new File(path).fsName)throw Error('Das neue Projekt ist noch nicht aktiv.');
     app.project.save();
    }
   }else if(kind==='project'){
+   if(!path){
+    var chosen=File.saveDialog('Neues Premiere-Projekt speichern','Premiere-Projekt:*.prproj');
+    if(!chosen)throw Error('Projekterstellung abgebrochen.');
+    path=chosen.fsName;if(!/\.prproj$/i.test(path))path+='.prproj';
+   }
    if(new File(path).exists){
     if(!app.project||new File(app.project.path).fsName!==new File(path).fsName)throw Error('Projektdatei existiert bereits. Sie wird nicht überschrieben.');
    }else{
